@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: #0a0a0a;
+  --color-foreground: #ededed;
+  --color-primary: #f59e0b;
+  --color-primary-dark: #d97706;
+  --color-surface: #1a1a2e;
+  --color-surface-light: #25253e;
+  --color-danger: #dc2626;
+  --color-warning: #ea580c;
+  --color-success: #16a34a;
+  --color-info: #2563eb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 2px;
+}
+
+/* Camera video fill */
+.camera-video {
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+}
+
+/* Severity badge colors */
+.severity-critical {
+  background-color: #dc2626;
+  color: white;
+}
+.severity-major {
+  background-color: #ea580c;
+  color: white;
+}
+.severity-minor {
+  background-color: #ca8a04;
+  color: white;
+}
+.severity-info {
+  background-color: #2563eb;
+  color: white;
+}
+
+/* Pulse animation for recording indicator */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.animate-pulse-dot {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+/* Slide up animation */
+@keyframes slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}

@@ -9,7 +9,7 @@ Be conversational and direct, like you're standing next to the user coaching the
 export class GeminiClient {
   private apiKey: string;
   private conversationHistory: GeminiMessage[] = [];
-  private model = "gemini-2.0-flash";
+  private model = "gemini-2.5-flash";
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;

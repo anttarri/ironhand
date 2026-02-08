@@ -1,35 +1,10 @@
-import { AnalysisResult, GeminiMessage, DetectedIssue, Severity } from "@/types/inspection";
+import { GeminiMessage } from "@/types/inspection";
 
-const SYSTEM_PROMPT = `You are an expert residential electrical inspector AI assistant. You help licensed electricians perform thorough panel inspections following the NEC (National Electrical Code) 2023 standards.
+const SYSTEM_PROMPT = `You are an experienced residential electrical inspector. The user is going to show you images of a residential electrical panel. As they slowly pan across the panel, call out anything you see — code violations, safety hazards, signs of amateur work, anything that doesn't look right. Reference NEC codes when relevant.
 
-When analyzing images of electrical panels, you should:
-1. Identify visible components (breakers, bus bars, wiring, grounding, labels, etc.)
-2. Detect potential code violations or safety issues
-3. Provide specific NEC references for any findings
-4. Give clear, actionable guidance
+On the first image, start by telling the user what type of panel this is and your overall first impression. On subsequent images, continue the conversation naturally — point out new things you notice, follow up on earlier observations, and respond to any questions.
 
-Format your analysis as JSON with this structure:
-{
-  "components": ["list of identified components"],
-  "issues": [
-    {
-      "title": "Brief issue title",
-      "description": "Detailed description of the issue",
-      "severity": "critical|major|minor|info",
-      "necReference": "NEC section reference",
-      "location": "Where in the panel this was observed"
-    }
-  ],
-  "guidance": "Overall guidance text for the inspector"
-}
-
-Severity levels:
-- critical: Immediate safety hazard, fire risk, or electrocution danger
-- major: Code violation that needs correction
-- minor: Best practice recommendation or minor code concern
-- info: Informational observation, no action needed
-
-Be specific and precise. Do not speculate about things you cannot clearly see in the image. If you cannot determine something from the image, say so.`;
+Be conversational and direct, like you're standing next to the user coaching them through the inspection. Keep responses concise but thorough. If you can't see something clearly, say so rather than guessing.`;
 
 export class GeminiClient {
   private apiKey: string;
@@ -44,46 +19,50 @@ export class GeminiClient {
     this.conversationHistory = [];
   }
 
-  async analyzeImage(
-    imageBase64: string,
-    mimeType: string,
-    prompt: string
-  ): Promise<AnalysisResult> {
-    const userMessage: GeminiMessage = {
-      role: "user",
-      parts: [
-        {
-          inlineData: {
-            mimeType,
-            data: imageBase64,
-          },
-        },
-        {
-          text: prompt || "Analyze this electrical panel image. Identify components and any potential issues or code violations.",
-        },
-      ],
-    };
+  get isFirstMessage(): boolean {
+    return this.conversationHistory.length === 0;
+  }
 
-    this.conversationHistory.push(userMessage);
+  async sendImage(imageBase64: string, mimeType: string, text?: string): Promise<string> {
+    const parts: GeminiMessage["parts"] = [
+      {
+        inlineData: {
+          mimeType,
+          data: imageBase64,
+        },
+      },
+    ];
+
+    if (text) {
+      parts.push({ text });
+    } else if (this.isFirstMessage) {
+      parts.push({
+        text: "Here's the panel. What do you see?",
+      });
+    } else {
+      parts.push({
+        text: "Here's another view. What do you notice?",
+      });
+    }
+
+    this.conversationHistory.push({ role: "user", parts });
 
     const response = await this.callApi();
-    const text = this.extractText(response);
+    const responseText = this.extractText(response);
 
     this.conversationHistory.push({
       role: "model",
-      parts: [{ text }],
+      parts: [{ text: responseText }],
     });
 
-    return this.parseAnalysis(text);
+    return responseText;
   }
 
   async chat(message: string): Promise<string> {
-    const userMessage: GeminiMessage = {
+    this.conversationHistory.push({
       role: "user",
       parts: [{ text: message }],
-    };
-
-    this.conversationHistory.push(userMessage);
+    });
 
     const response = await this.callApi();
     const text = this.extractText(response);
@@ -96,12 +75,6 @@ export class GeminiClient {
     return text;
   }
 
-  async getInspectionGuidance(checklistItemTitle: string, checklistItemHowTo: string): Promise<string> {
-    return this.chat(
-      `I'm now inspecting: "${checklistItemTitle}". The standard procedure is: ${checklistItemHowTo}. Please provide additional tips or things to watch for during this step of the inspection.`
-    );
-  }
-
   private async callApi(): Promise<Record<string, unknown>> {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
 
@@ -111,8 +84,8 @@ export class GeminiClient {
         parts: [{ text: SYSTEM_PROMPT }],
       },
       generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 4096,
+        temperature: 0.4,
+        maxOutputTokens: 2048,
       },
     };
 
@@ -136,39 +109,5 @@ export class GeminiClient {
       response?.candidates?.[0]?.content?.parts?.[0]?.text ??
       "No response from AI."
     );
-  }
-
-  private parseAnalysis(text: string): AnalysisResult {
-    // Try to extract JSON from the response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        const parsed = JSON.parse(jsonMatch[0]);
-        return {
-          components: parsed.components ?? [],
-          issues: (parsed.issues ?? []).map(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (issue: any): DetectedIssue => ({
-              title: issue.title ?? "Unknown Issue",
-              description: issue.description ?? "",
-              severity: (["critical", "major", "minor", "info"].includes(issue.severity)
-                ? issue.severity
-                : "info") as Severity,
-              necReference: issue.necReference ?? "",
-              location: issue.location ?? "",
-            })
-          ),
-          guidance: parsed.guidance ?? "",
-        };
-      } catch {
-        // Fall through to default
-      }
-    }
-
-    return {
-      components: [],
-      issues: [],
-      guidance: text,
-    };
   }
 }

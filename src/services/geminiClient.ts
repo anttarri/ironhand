@@ -13,12 +13,14 @@ import type {
 export class GeminiClient {
   private ws: WebSocket | null = null;
   private callbacks: GeminiClientCallbacks;
+  private aborted = false;
 
   constructor(callbacks: GeminiClientCallbacks) {
     this.callbacks = callbacks;
   }
 
   async connect(apiKey: string): Promise<void> {
+    this.aborted = false;
     this.callbacks.onStateChange('connecting');
 
     // Pre-flight: validate API key with a lightweight REST call
@@ -27,6 +29,7 @@ export class GeminiClient {
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${modelId}?key=${apiKey}`,
       );
+      if (this.aborted) return;
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         const msg =
@@ -37,10 +40,13 @@ export class GeminiClient {
         return;
       }
     } catch {
+      if (this.aborted) return;
       this.callbacks.onError('Network error — cannot reach Google API');
       this.callbacks.onStateChange('error');
       return;
     }
+
+    if (this.aborted) return;
 
     // Key is valid, open WebSocket
     const url = `${GEMINI_WS_URL}?key=${apiKey}`;
@@ -163,6 +169,7 @@ export class GeminiClient {
   }
 
   disconnect(): void {
+    this.aborted = true;
     if (this.ws) {
       this.ws.onclose = null;
       this.ws.onerror = null;

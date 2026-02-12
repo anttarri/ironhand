@@ -50,6 +50,7 @@ export function SessionView({ apiKey, onEnd }: SessionViewProps) {
     }
 
     return () => {
+      hasStartedRef.current = false;
       gemini.disconnect();
       camera.stopCamera();
       audio.cleanup();

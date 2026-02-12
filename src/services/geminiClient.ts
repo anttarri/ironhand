@@ -28,7 +28,7 @@ export class GeminiClient {
     // Pre-flight: validate API key with a lightweight REST call
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/${GEMINI_MODEL}?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1alpha/${GEMINI_MODEL}?key=${apiKey}`,
       );
       if (this.aborted) return;
       if (!res.ok) {

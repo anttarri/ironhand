@@ -1,5 +1,5 @@
 export const GEMINI_WS_URL =
-  'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
+  'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent';
 
 export const GEMINI_MODEL = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
 

@@ -3,7 +3,7 @@ export const GEMINI_WS_URL =
 
 export const GEMINI_MODEL = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
 
-export const GEMINI_VOICE = 'Peri';
+export const GEMINI_VOICE = 'Puck';
 
 // Audio
 export const INPUT_SAMPLE_RATE = 16000;

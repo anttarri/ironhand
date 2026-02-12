@@ -1,5 +1,5 @@
 import {
-  GEMINI_WS_BASE,
+  GEMINI_WS_URL,
   GEMINI_MODEL,
   GEMINI_VOICE,
   CONNECTION_TIMEOUT_MS,
@@ -28,7 +28,7 @@ export class GeminiClient {
     // Pre-flight: validate API key with a lightweight REST call
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/${GEMINI_MODEL}?key=${apiKey}`,
       );
       if (this.aborted) return;
       if (!res.ok) {
@@ -50,7 +50,7 @@ export class GeminiClient {
     if (this.aborted) return;
 
     // Key is valid, open WebSocket
-    const url = `${GEMINI_WS_BASE}/${GEMINI_MODEL}:bidiGenerateContent?key=${apiKey}&alt=ws`;
+    const url = `${GEMINI_WS_URL}?key=${apiKey}`;
     this.ws = new WebSocket(url);
 
     // Start a connection timeout
@@ -99,7 +99,7 @@ export class GeminiClient {
   private sendSetup(): void {
     const setup = {
       setup: {
-        model: `models/${GEMINI_MODEL}`,
+        model: GEMINI_MODEL,
         generationConfig: {
           responseModalities: ['AUDIO'],
           speechConfig: {

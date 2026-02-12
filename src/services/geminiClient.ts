@@ -18,9 +18,31 @@ export class GeminiClient {
     this.callbacks = callbacks;
   }
 
-  connect(apiKey: string): void {
+  async connect(apiKey: string): Promise<void> {
     this.callbacks.onStateChange('connecting');
 
+    // Pre-flight: validate API key with a lightweight REST call
+    try {
+      const modelId = GEMINI_MODEL.replace('models/', '');
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelId}?key=${apiKey}`,
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const msg =
+          (body as { error?: { message?: string } })?.error?.message ||
+          `HTTP ${res.status}`;
+        this.callbacks.onError(`API key validation failed: ${msg}`);
+        this.callbacks.onStateChange('error');
+        return;
+      }
+    } catch {
+      this.callbacks.onError('Network error — cannot reach Google API');
+      this.callbacks.onStateChange('error');
+      return;
+    }
+
+    // Key is valid, open WebSocket
     const url = `${GEMINI_WS_URL}?key=${apiKey}`;
     this.ws = new WebSocket(url);
 

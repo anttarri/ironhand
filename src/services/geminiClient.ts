@@ -100,17 +100,17 @@ export class GeminiClient {
     const setup = {
       setup: {
         model: GEMINI_MODEL,
-        generationConfig: {
-          responseModalities: ['AUDIO'],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: GEMINI_VOICE },
+        generation_config: {
+          response_modalities: ['AUDIO'],
+          speech_config: {
+            voice_config: {
+              prebuilt_voice_config: { voice_name: GEMINI_VOICE },
             },
           },
         },
-        inputAudioTranscription: {},
-        outputAudioTranscription: {},
-        systemInstruction: {
+        input_audio_transcription: {},
+        output_audio_transcription: {},
+        system_instruction: {
           parts: [{ text: SYSTEM_PROMPT }],
         },
       },

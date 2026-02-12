@@ -1,7 +1,8 @@
 import {
-  GEMINI_WS_URL,
+  GEMINI_WS_BASE,
   GEMINI_MODEL,
   GEMINI_VOICE,
+  CONNECTION_TIMEOUT_MS,
 } from '@/config/constants';
 import { SYSTEM_PROMPT } from '@/config/systemPrompt';
 import type {
@@ -14,6 +15,7 @@ export class GeminiClient {
   private ws: WebSocket | null = null;
   private callbacks: GeminiClientCallbacks;
   private aborted = false;
+  private connectTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(callbacks: GeminiClientCallbacks) {
     this.callbacks = callbacks;
@@ -25,9 +27,8 @@ export class GeminiClient {
 
     // Pre-flight: validate API key with a lightweight REST call
     try {
-      const modelId = GEMINI_MODEL.replace('models/', '');
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${modelId}?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}?key=${apiKey}`,
       );
       if (this.aborted) return;
       if (!res.ok) {
@@ -49,8 +50,17 @@ export class GeminiClient {
     if (this.aborted) return;
 
     // Key is valid, open WebSocket
-    const url = `${GEMINI_WS_URL}?key=${apiKey}`;
+    const url = `${GEMINI_WS_BASE}/${GEMINI_MODEL}:bidiGenerateContent?key=${apiKey}&alt=ws`;
     this.ws = new WebSocket(url);
+
+    // Start a connection timeout
+    this.connectTimer = setTimeout(() => {
+      if (this.ws && this.ws.readyState !== WebSocket.CLOSED) {
+        this.callbacks.onError('Connection timed out — try again');
+        this.ws.close();
+        this.callbacks.onStateChange('error');
+      }
+    }, CONNECTION_TIMEOUT_MS);
 
     this.ws.onopen = () => {
       this.sendSetup();
@@ -66,11 +76,13 @@ export class GeminiClient {
     };
 
     this.ws.onerror = () => {
+      this.clearConnectTimer();
       this.callbacks.onError('WebSocket connection error — check your API key');
       this.callbacks.onStateChange('error');
     };
 
     this.ws.onclose = (event: CloseEvent) => {
+      this.clearConnectTimer();
       if (event.code !== 1000) {
         const reason = event.reason
           || (event.code === 1006
@@ -87,7 +99,7 @@ export class GeminiClient {
   private sendSetup(): void {
     const setup = {
       setup: {
-        model: GEMINI_MODEL,
+        model: `models/${GEMINI_MODEL}`,
         generationConfig: {
           responseModalities: ['AUDIO'],
           speechConfig: {
@@ -108,6 +120,7 @@ export class GeminiClient {
 
   private handleMessage(msg: GeminiServerMessage): void {
     if (msg.setupComplete !== undefined) {
+      this.clearConnectTimer();
       this.callbacks.onStateChange('active');
       return;
     }
@@ -168,8 +181,16 @@ export class GeminiClient {
     });
   }
 
+  private clearConnectTimer(): void {
+    if (this.connectTimer) {
+      clearTimeout(this.connectTimer);
+      this.connectTimer = null;
+    }
+  }
+
   disconnect(): void {
     this.aborted = true;
+    this.clearConnectTimer();
     if (this.ws) {
       this.ws.onclose = null;
       this.ws.onerror = null;

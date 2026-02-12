@@ -1,7 +1,10 @@
-export const GEMINI_WS_URL =
-  'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
+export const GEMINI_MODEL = 'gemini-2.5-flash-native-audio-preview-12-2025';
 
-export const GEMINI_MODEL = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
+export const GEMINI_WS_BASE =
+  'wss://generativelanguage.googleapis.com/v1beta/models';
+
+// Timeout (ms) for WebSocket to reach 'active' state
+export const CONNECTION_TIMEOUT_MS = 15_000;
 
 export const GEMINI_VOICE = 'Puck';
 

@@ -66,9 +66,12 @@ export class GeminiClient {
       this.sendSetup();
     };
 
-    this.ws.onmessage = (event: MessageEvent) => {
+    this.ws.onmessage = async (event: MessageEvent) => {
       try {
-        const data: GeminiServerMessage = JSON.parse(event.data);
+        const raw = event.data instanceof Blob
+          ? await event.data.text()
+          : event.data;
+        const data: GeminiServerMessage = JSON.parse(raw);
         this.handleMessage(data);
       } catch {
         // Non-JSON message, ignore

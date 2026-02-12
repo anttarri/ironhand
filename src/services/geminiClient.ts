@@ -95,9 +95,9 @@ export class GeminiClient {
               prebuiltVoiceConfig: { voiceName: GEMINI_VOICE },
             },
           },
-          inputAudioTranscription: {},
-          outputAudioTranscription: {},
         },
+        inputAudioTranscription: {},
+        outputAudioTranscription: {},
         systemInstruction: {
           parts: [{ text: SYSTEM_PROMPT }],
         },

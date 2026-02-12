@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ironhand
 
-## Getting Started
+Real-time AI electrician assistant. Streams live camera video and two-way voice to Google's Gemini Multimodal Live API for hands-free electrical guidance.
 
-First, run the development server:
+## Setup
+
+```bash
+npm install
+
+# Add your Gemini API key
+cp .env.example .env
+# Edit .env: VITE_GEMINI_API_KEY=your_key_here
+```
+
+Get an API key at [Google AI Studio](https://aistudio.google.com/apikey).
+
+## Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Testing on Mobile
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Camera access requires HTTPS or localhost. To test on your phone over the local network:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run dev -- --host
+```
 
-## Learn More
+Then open `https://<your-ip>:5173` on your phone. You may need HTTPS — install `@vitejs/plugin-basic-ssl`:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm i -D @vitejs/plugin-basic-ssl
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Then add it to `vite.config.ts`:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```ts
+import basicSsl from '@vitejs/plugin-basic-ssl';
 
-## Deploy on Vercel
+export default defineConfig({
+  plugins: [react(), basicSsl()],
+  // ...
+});
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Production Build
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run build
+npm run preview
+```
+
+The `dist/` folder can be deployed to Vercel, Netlify, or any static host.
+
+## Architecture
+
+- **React + TypeScript + Vite** — no backend server
+- **Raw WebSocket** connection to Gemini Multimodal Live API
+- **Camera**: 1 FPS JPEG frames streamed to Gemini
+- **Audio**: 16kHz PCM mic input, 24kHz PCM playback from Gemini
+- **Transcription**: Built-in input/output audio transcription for chat overlay

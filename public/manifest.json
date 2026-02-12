@@ -1,12 +1,11 @@
 {
-  "name": "Ironhand - Electrical Panel Inspector",
+  "name": "Ironhand",
   "short_name": "Ironhand",
-  "description": "AI-powered real-time guidance for residential electrical panel inspections",
+  "description": "AI-powered electrical inspection assistant",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#0a0a0a",
-  "orientation": "portrait",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
   "icons": [
     {
       "src": "/icon-192.png",

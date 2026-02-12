@@ -38,15 +38,17 @@ export class GeminiClient {
     };
 
     this.ws.onerror = () => {
-      this.callbacks.onError('WebSocket connection error');
+      this.callbacks.onError('WebSocket connection error — check your API key');
       this.callbacks.onStateChange('error');
     };
 
     this.ws.onclose = (event: CloseEvent) => {
       if (event.code !== 1000) {
-        this.callbacks.onError(
-          `Connection closed: ${event.reason || `code ${event.code}`}`,
-        );
+        const reason = event.reason
+          || (event.code === 1006
+            ? 'Connection failed — check your API key and try again'
+            : `code ${event.code}`);
+        this.callbacks.onError(`Connection closed: ${reason}`);
         this.callbacks.onStateChange('error');
       } else {
         this.callbacks.onStateChange('idle');
@@ -116,7 +118,7 @@ export class GeminiClient {
   sendAudio(base64Pcm: string): void {
     this.send({
       realtimeInput: {
-        mediaChunks: [{ data: base64Pcm }],
+        mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: base64Pcm }],
       },
     });
   }
@@ -142,7 +144,9 @@ export class GeminiClient {
     if (this.ws) {
       this.ws.onclose = null;
       this.ws.onerror = null;
-      this.ws.close(1000);
+      if (this.ws.readyState !== WebSocket.CLOSED && this.ws.readyState !== WebSocket.CLOSING) {
+        this.ws.close(1000);
+      }
       this.ws = null;
     }
     this.callbacks.onStateChange('idle');

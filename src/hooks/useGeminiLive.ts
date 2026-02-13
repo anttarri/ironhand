@@ -27,6 +27,24 @@ export function useGeminiLive() {
     });
   }, []);
 
+  /** Append text to the last message if it has the same role, otherwise create a new one. */
+  const appendOrAddMessage = useCallback((role: ChatMessage['role'], text: string) => {
+    setMessages((prev) => {
+      const last = prev[prev.length - 1];
+      if (last && last.role === role) {
+        const updated = [...prev];
+        updated[updated.length - 1] = { ...last, text: last.text + text };
+        return updated;
+      }
+      const msg: ChatMessage = { id: nextId(), role, text, timestamp: Date.now() };
+      const next = [...prev, msg];
+      if (next.length > MAX_CHAT_MESSAGES) {
+        return next.slice(next.length - MAX_CHAT_MESSAGES);
+      }
+      return next;
+    });
+  }, []);
+
   const connect = useCallback(
     (apiKey: string) => {
       // Clean up existing connection
@@ -49,17 +67,17 @@ export function useGeminiLive() {
         },
         onTranscriptUser: (text: string) => {
           if (text.trim()) {
-            addMessage('user', text.trim());
+            appendOrAddMessage('user', text);
           }
         },
         onTranscriptModel: (text: string) => {
           if (text.trim()) {
-            addMessage('ai', text.trim());
+            appendOrAddMessage('ai', text);
           }
         },
         onTextResponse: (text: string) => {
           if (text.trim()) {
-            addMessage('ai', text.trim());
+            appendOrAddMessage('ai', text);
           }
         },
         onTurnComplete: () => {
@@ -74,7 +92,7 @@ export function useGeminiLive() {
       clientRef.current = client;
       client.connect(apiKey);
     },
-    [addMessage],
+    [addMessage, appendOrAddMessage],
   );
 
   const disconnect = useCallback(() => {

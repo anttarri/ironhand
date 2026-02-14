@@ -75,10 +75,9 @@ export function useGeminiLive() {
             appendOrAddMessage('ai', text);
           }
         },
-        onTextResponse: (text: string) => {
-          if (text.trim()) {
-            appendOrAddMessage('ai', text);
-          }
+        onTextResponse: () => {
+          // Text from modelTurn.parts contains internal reasoning, not spoken words.
+          // The actual spoken content comes via onTranscriptModel, so we ignore this.
         },
         onTurnComplete: () => {
           // Model finished speaking — could add UI indicator here

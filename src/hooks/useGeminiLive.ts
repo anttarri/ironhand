@@ -59,7 +59,7 @@ export function useGeminiLive() {
         onStateChange: (s: SessionState) => {
           setState(s);
           if (s === 'active') {
-            addMessage('system', 'Connected. Point your camera at the panel and start talking.');
+            addMessage('system', 'Connected. Point your camera at what you are working on and start talking.');
           }
         },
         onAudioData: (base64: string) => {

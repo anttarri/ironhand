@@ -42,7 +42,7 @@ export function ChatOverlay({ messages }: ChatOverlayProps) {
       >
         {messages.length === 0 && (
           <div className="text-center text-white/40 text-sm py-4">
-            Point your camera at the panel and start talking...
+            Point your camera at what you are working on and start talking...
           </div>
         )}
 

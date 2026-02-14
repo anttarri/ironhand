@@ -8,11 +8,10 @@ import { ControlBar } from './ControlBar';
 import { StatusIndicator } from './StatusIndicator';
 
 interface SessionViewProps {
-  apiKey: string;
   onEnd: () => void;
 }
 
-export function SessionView({ apiKey, onEnd }: SessionViewProps) {
+export function SessionView({ onEnd }: SessionViewProps) {
   const gemini = useGeminiLive();
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const hasStartedRef = useRef(false);
@@ -35,7 +34,7 @@ export function SessionView({ apiKey, onEnd }: SessionViewProps) {
     if (hasStartedRef.current) return;
     hasStartedRef.current = true;
 
-    gemini.connect(apiKey);
+    gemini.connect();
     camera.startCamera().catch(() => {
       // Camera permission denied is handled in the UI
     });

@@ -21,9 +21,30 @@ export class GeminiClient {
     this.callbacks = callbacks;
   }
 
-  async connect(apiKey: string): Promise<void> {
+  async connect(): Promise<void> {
     this.aborted = false;
     this.callbacks.onStateChange('connecting');
+
+    // Fetch API key from server-side proxy
+    let apiKey: string;
+    try {
+      const res = await fetch('/api/session');
+      if (this.aborted) return;
+      if (!res.ok) {
+        this.callbacks.onError('Failed to initialize session');
+        this.callbacks.onStateChange('error');
+        return;
+      }
+      const data = await res.json();
+      apiKey = data.key;
+    } catch {
+      if (this.aborted) return;
+      this.callbacks.onError('Network error — cannot reach server');
+      this.callbacks.onStateChange('error');
+      return;
+    }
+
+    if (this.aborted) return;
 
     // Pre-flight: validate API key with a lightweight REST call
     try {
@@ -80,7 +101,7 @@ export class GeminiClient {
 
     this.ws.onerror = () => {
       this.clearConnectTimer();
-      this.callbacks.onError('WebSocket connection error — check your API key');
+      this.callbacks.onError('WebSocket connection error');
       this.callbacks.onStateChange('error');
     };
 
@@ -89,7 +110,7 @@ export class GeminiClient {
       if (event.code !== 1000) {
         const reason = event.reason
           || (event.code === 1006
-            ? 'Connection failed — check your API key and try again'
+            ? 'Connection failed — try again'
             : `code ${event.code}`);
         this.callbacks.onError(`Connection closed: ${reason}`);
         this.callbacks.onStateChange('error');

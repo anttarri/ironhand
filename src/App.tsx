@@ -6,10 +6,8 @@ type Screen = 'start' | 'session';
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('start');
-  const [apiKey, setApiKey] = useState('');
 
-  const handleStart = (key: string) => {
-    setApiKey(key);
+  const handleStart = () => {
     setScreen('session');
   };
 
@@ -21,7 +19,7 @@ export default function App() {
     <div className="h-full">
       {screen === 'start' && <StartScreen onStart={handleStart} />}
       {screen === 'session' && (
-        <SessionView apiKey={apiKey} onEnd={handleEnd} />
+        <SessionView onEnd={handleEnd} />
       )}
     </div>
   );

@@ -46,7 +46,7 @@ export function useGeminiLive() {
   }, []);
 
   const connect = useCallback(
-    (apiKey: string) => {
+    () => {
       // Clean up existing connection
       if (clientRef.current) {
         clientRef.current.disconnect();
@@ -89,7 +89,7 @@ export function useGeminiLive() {
       });
 
       clientRef.current = client;
-      client.connect(apiKey);
+      client.connect();
     },
     [addMessage, appendOrAddMessage],
   );

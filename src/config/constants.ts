@@ -6,7 +6,7 @@ export const GEMINI_MODEL = 'models/gemini-2.5-flash-native-audio-preview-12-202
 // Timeout (ms) for WebSocket to reach 'active' state
 export const CONNECTION_TIMEOUT_MS = 15_000;
 
-export const GEMINI_VOICE = 'Charon';
+export const GEMINI_VOICE = 'Enceladus';
 
 // Audio
 export const INPUT_SAMPLE_RATE = 16000;

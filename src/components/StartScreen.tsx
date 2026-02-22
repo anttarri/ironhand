@@ -27,7 +27,7 @@ export function StartScreen({ onStart }: StartScreenProps) {
         </button>
 
         <p className="text-white/20 text-xs text-center leading-relaxed">
-          Ironhand uses your camera and microphone to provide real-time
+          Ironhand uses your camera and microphone to provide realtime
           electrical guidance.
         </p>
       </div>

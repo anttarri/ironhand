@@ -20,6 +20,12 @@ Get an API key at [Google AI Studio](https://aistudio.google.com/apikey).
 npm run dev
 ```
 
+To run with the Vercel function layer (`/api/*`) locally:
+
+```bash
+npm run dev:vercel
+```
+
 ## Testing on Mobile
 
 Camera access requires HTTPS or localhost. To test on your phone over the local network:

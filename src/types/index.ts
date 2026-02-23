@@ -7,6 +7,42 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+export type CallLogStatus = 'active' | 'completed' | 'interrupted';
+
+export interface CallLogMessage {
+  id: string;
+  role: ChatMessage['role'];
+  text: string;
+  timestamp: number;
+}
+
+export interface CallLog {
+  id: string;
+  title: string;
+  titleUpdatedAt?: number;
+  startedAt: number;
+  endedAt?: number;
+  durationSec?: number;
+  status: CallLogStatus;
+  messages: CallLogMessage[];
+  messageCount: number;
+  preview: string;
+  updatedAt: number;
+}
+
+export interface CallLogMeta {
+  id: string;
+  title: string;
+  titleUpdatedAt?: number;
+  startedAt: number;
+  endedAt?: number;
+  durationSec?: number;
+  status: CallLogStatus;
+  messageCount: number;
+  preview: string;
+  updatedAt: number;
+}
+
 export interface GeminiSetupMessage {
   setup: {
     model: string;

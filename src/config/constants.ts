@@ -19,3 +19,8 @@ export const CAMERA_FRAME_MAX_WIDTH = 768;
 
 // UI
 export const MAX_CHAT_MESSAGES = 100;
+
+// Local call logs
+export const MAX_CALL_LOGS = 100;
+export const CALL_LOG_SAVE_DEBOUNCE_MS = 1000;
+export const CALL_LOG_MAX_TITLE_LENGTH = 80;

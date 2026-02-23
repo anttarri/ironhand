@@ -31,7 +31,10 @@ export class GeminiClient {
       const res = await fetch('/api/session');
       if (this.aborted) return;
       if (!res.ok) {
-        this.callbacks.onError('Failed to initialize session');
+        const body = await res.json().catch(() => ({}));
+        const msg =
+          (body as { error?: string })?.error || `HTTP ${res.status}`;
+        this.callbacks.onError(`Failed to initialize session: ${msg}`);
         this.callbacks.onStateChange('error');
         return;
       }

@@ -1,8 +1,9 @@
 interface StartScreenProps {
   onStart: () => void;
+  onOpenHistory: () => void;
 }
 
-export function StartScreen({ onStart }: StartScreenProps) {
+export function StartScreen({ onStart, onOpenHistory }: StartScreenProps) {
   return (
     <div className="h-full flex flex-col items-center justify-center px-6 bg-charcoal">
       {/* Logo */}
@@ -24,6 +25,13 @@ export function StartScreen({ onStart }: StartScreenProps) {
           className="w-full bg-amber-500 hover:bg-amber-600 text-charcoal font-semibold rounded-xl py-4 text-base transition-colors active:scale-[0.98]"
         >
           Start Session
+        </button>
+
+        <button
+          onClick={onOpenHistory}
+          className="w-full bg-white/10 hover:bg-white/15 text-white font-semibold rounded-xl py-4 text-base transition-colors active:scale-[0.98] border border-white/15"
+        >
+          Call History
         </button>
 
         <p className="text-white/20 text-xs text-center leading-relaxed">

@@ -94,6 +94,7 @@ export function SessionView({ onEnd }: SessionViewProps) {
       {/* Control bar */}
       <ControlBar
         isMuted={audio.isMuted}
+        isCameraOn={camera.isActive}
         isAiSpeaking={audio.isAiSpeaking}
         onToggleMute={audio.toggleMute}
         onEndSession={handleEnd}

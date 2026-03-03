@@ -1,5 +1,6 @@
 interface ControlBarProps {
   isMuted: boolean;
+  isCameraOn: boolean;
   isAiSpeaking: boolean;
   onToggleMute: () => void;
   onEndSession: () => void;
@@ -8,6 +9,7 @@ interface ControlBarProps {
 
 export function ControlBar({
   isMuted,
+  isCameraOn,
   isAiSpeaking,
   onToggleMute,
   onEndSession,
@@ -16,18 +18,25 @@ export function ControlBar({
   return (
     <div className="absolute bottom-0 left-0 right-0 safe-bottom">
       <div className="flex items-center justify-center gap-5 px-6 py-4 bg-gradient-to-t from-black/80 to-transparent">
-        {/* Camera flip */}
+        {/* Camera on/off toggle */}
         <button
           onClick={onToggleCamera}
-          className="w-14 h-14 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center active:bg-white/25 transition-colors"
-          aria-label="Flip camera"
+          className={`w-14 h-14 rounded-full flex items-center justify-center active:bg-white/25 transition-colors ${
+            isCameraOn ? 'bg-white/15 backdrop-blur-sm' : 'bg-danger'
+          }`}
+          aria-label={isCameraOn ? 'Turn camera off' : 'Turn camera on'}
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
-            <path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5" />
-            <path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5" />
-            <polyline points="16 3 18.5 5.5 16 8" />
-            <polyline points="8 16 5.5 18.5 8 21" />
-          </svg>
+          {isCameraOn ? (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+              <path d="M23 7l-7 5 7 5V7z" />
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+            </svg>
+          ) : (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+              <path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10" />
+              <line x1="1" y1="1" x2="23" y2="23" />
+            </svg>
+          )}
         </button>
 
         {/* Mic toggle */}

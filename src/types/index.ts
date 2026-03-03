@@ -7,6 +7,14 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+export interface SavedSession {
+  id: string;
+  startedAt: number;
+  endedAt: number;
+  messages: ChatMessage[];
+  messageCount: number;
+}
+
 export interface GeminiSetupMessage {
   setup: {
     model: string;

@@ -6,9 +6,10 @@ import { CameraPreview } from './CameraPreview';
 import { ChatOverlay } from './ChatOverlay';
 import { ControlBar } from './ControlBar';
 import { StatusIndicator } from './StatusIndicator';
+import type { ChatMessage } from '@/types';
 
 interface SessionViewProps {
-  onEnd: () => void;
+  onEnd: (messages: ChatMessage[]) => void;
 }
 
 export function SessionView({ onEnd }: SessionViewProps) {
@@ -71,11 +72,12 @@ export function SessionView({ onEnd }: SessionViewProps) {
   }, [gemini.state, audio, camera]);
 
   const handleEnd = useCallback(() => {
+    const sessionMessages = [...gemini.messages];
     gemini.disconnect();
     camera.stopCamera();
     audio.cleanup();
     wakeLockRef.current?.release();
-    onEnd();
+    onEnd(sessionMessages);
   }, [gemini, camera, audio, onEnd]);
 
   return (

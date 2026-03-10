@@ -58,6 +58,8 @@ npm run build
 npm run preview
 ```
 
+hey this is a test
+
 The `dist/` folder can be deployed to Vercel, Netlify, or any static host.
 
 ## Architecture

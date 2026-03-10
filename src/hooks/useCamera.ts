@@ -87,14 +87,23 @@ export function useCamera({ onFrame }: UseCameraOptions = {}) {
   }, []);
 
   const toggleCamera = useCallback(async () => {
-    const wasStreaming = isStreaming;
-    if (wasStreaming) stopStreaming();
-
-    const newFacing: FacingMode = facingMode === 'environment' ? 'user' : 'environment';
-    await startCamera(newFacing);
-
-    if (wasStreaming) startStreaming();
-  }, [facingMode, isStreaming, startCamera, startStreaming, stopStreaming]);
+    if (isActive) {
+      // Turn camera off — release hardware (saves battery for pocket mode)
+      stopStreaming();
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+      setIsActive(false);
+    } else {
+      // Turn camera back on — re-acquire with the same facing mode
+      await startCamera(facingMode);
+      startStreaming();
+    }
+  }, [isActive, facingMode, startCamera, startStreaming, stopStreaming]);
 
   // Pause frame capture when page hidden
   useEffect(() => {

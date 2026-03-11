@@ -1,9 +1,10 @@
 interface StartScreenProps {
-  onStart: () => void;
+  onStartLive: () => void;
+  onStartPhoto: () => void;
   onOpenHistory: () => void;
 }
 
-export function StartScreen({ onStart, onOpenHistory }: StartScreenProps) {
+export function StartScreen({ onStartLive, onStartPhoto, onOpenHistory }: StartScreenProps) {
   return (
     <div className="h-full flex flex-col items-center justify-center px-6 bg-charcoal">
       {/* Logo */}
@@ -21,15 +22,22 @@ export function StartScreen({ onStart, onOpenHistory }: StartScreenProps) {
 
       <div className="w-full max-w-sm space-y-4">
         <button
-          onClick={onStart}
+          onClick={onStartLive}
           className="w-full bg-amber-500 hover:bg-amber-600 text-charcoal font-semibold rounded-xl py-4 text-base transition-colors active:scale-[0.98]"
         >
-          Start Session
+          Go Live
+        </button>
+
+        <button
+          onClick={onStartPhoto}
+          className="w-full bg-white/10 hover:bg-white/15 text-white font-semibold rounded-xl py-4 text-base transition-colors active:scale-[0.98] border border-white/15"
+        >
+          Snap Photo
         </button>
 
         <button
           onClick={onOpenHistory}
-          className="w-full bg-white/10 hover:bg-white/15 text-white font-semibold rounded-xl py-4 text-base transition-colors active:scale-[0.98] border border-white/15"
+          className="w-full bg-black/25 hover:bg-black/35 text-white/90 font-semibold rounded-xl py-4 text-base transition-colors active:scale-[0.98] border border-white/10"
         >
           Call History
         </button>

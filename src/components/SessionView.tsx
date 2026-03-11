@@ -8,6 +8,7 @@ import { CameraPreview } from './CameraPreview';
 import { ChatOverlay } from './ChatOverlay';
 import { ControlBar } from './ControlBar';
 import { StatusIndicator } from './StatusIndicator';
+import { TextComposer } from './TextComposer';
 
 interface SessionViewProps {
   onEnd: () => void;
@@ -146,6 +147,19 @@ export function SessionView({ onEnd }: SessionViewProps) {
 
       {/* Chat overlay */}
       <ChatOverlay messages={gemini.messages} />
+
+      {/* Text fallback when live video is disabled */}
+      {!camera.isActive && gemini.state === 'active' && (
+        <div className="absolute left-3 right-3 bottom-[7.5rem] z-10">
+          <TextComposer
+            placeholder="Type while video is off"
+            submitLabel="Send"
+            onSubmit={async (text) => {
+              gemini.sendText(text);
+            }}
+          />
+        </div>
+      )}
 
       {/* Control bar */}
       <ControlBar

@@ -105,6 +105,11 @@ export function useCamera({ onFrame }: UseCameraOptions = {}) {
     }
   }, [isActive, facingMode, startCamera, startStreaming, stopStreaming]);
 
+  const capturePhoto = useCallback((): string | null => {
+    if (!videoRef.current) return null;
+    return captureFrame(videoRef.current, CAMERA_FRAME_MAX_WIDTH, CAMERA_FRAME_QUALITY);
+  }, []);
+
   // Pause frame capture when page hidden
   useEffect(() => {
     const handleVisibility = () => {
@@ -144,5 +149,6 @@ export function useCamera({ onFrame }: UseCameraOptions = {}) {
     startStreaming,
     stopStreaming,
     toggleCamera,
+    capturePhoto,
   };
 }

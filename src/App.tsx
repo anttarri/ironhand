@@ -1,20 +1,28 @@
 import { useState } from 'react';
 import { CallDetailView } from '@/components/CallDetailView';
 import { CallHistoryView } from '@/components/CallHistoryView';
+import { PhotoCaptureView } from '@/components/PhotoCaptureView';
+import { PhotoChatView } from '@/components/PhotoChatView';
 import { StartScreen } from '@/components/StartScreen';
 import { SessionView } from '@/components/SessionView';
-
-type Screen = 'start' | 'session' | 'history' | 'call-detail';
+import type { AppScreen, CapturedPhoto } from '@/types';
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('start');
+  const [screen, setScreen] = useState<AppScreen>('start');
   const [activeCallId, setActiveCallId] = useState<string | null>(null);
+  const [capturedPhoto, setCapturedPhoto] = useState<CapturedPhoto | null>(null);
 
-  const handleStart = () => {
-    setScreen('session');
+  const handleStartLive = () => {
+    setScreen('live-session');
+  };
+
+  const handleStartPhoto = () => {
+    setCapturedPhoto(null);
+    setScreen('photo-capture');
   };
 
   const handleEnd = () => {
+    setCapturedPhoto(null);
     setScreen('start');
   };
 
@@ -31,15 +39,38 @@ export default function App() {
     setScreen('history');
   };
 
+  const handlePhotoCaptured = (photo: CapturedPhoto) => {
+    setCapturedPhoto(photo);
+    setScreen('photo-chat');
+  };
+
   return (
     <div className="h-full">
-      {screen === 'start' && <StartScreen onStart={handleStart} onOpenHistory={handleOpenHistory} />}
-      {screen === 'session' && <SessionView onEnd={handleEnd} />}
+      {screen === 'start' && (
+        <StartScreen
+          onStartLive={handleStartLive}
+          onStartPhoto={handleStartPhoto}
+          onOpenHistory={handleOpenHistory}
+        />
+      )}
+      {screen === 'live-session' && <SessionView onEnd={handleEnd} />}
+      {screen === 'photo-capture' && (
+        <PhotoCaptureView
+          onBack={handleEnd}
+          onCapture={handlePhotoCaptured}
+        />
+      )}
+      {screen === 'photo-chat' && capturedPhoto && (
+        <PhotoChatView
+          photo={capturedPhoto}
+          onEnd={handleEnd}
+        />
+      )}
       {screen === 'history' && (
         <CallHistoryView
           onBack={() => setScreen('start')}
           onOpenCall={handleOpenCallDetail}
-          onStartSession={handleStart}
+          onStartSession={handleStartLive}
         />
       )}
       {screen === 'call-detail' && activeCallId && (

@@ -1,5 +1,28 @@
 export type SessionState = 'idle' | 'connecting' | 'active' | 'error';
 
+export type AppScreen =
+  | 'start'
+  | 'live-session'
+  | 'photo-capture'
+  | 'photo-chat'
+  | 'history'
+  | 'call-detail';
+
+export interface CapturedPhoto {
+  base64: string;
+  createdAt: number;
+}
+
+export interface PhotoChatMessage {
+  id: string;
+  role: 'user' | 'ai' | 'system';
+  text: string;
+  timestamp: number;
+  error?: string;
+}
+
+export type PhotoChatState = 'idle' | 'sending' | 'error';
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'ai' | 'system';

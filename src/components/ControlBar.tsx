@@ -1,19 +1,25 @@
 interface ControlBarProps {
   isMuted: boolean;
   isCameraOn: boolean;
+  isTorchAvailable: boolean;
+  isTorchOn: boolean;
   isAiSpeaking: boolean;
   onToggleMute: () => void;
   onEndSession: () => void;
   onToggleCamera: () => void;
+  onToggleTorch: () => void;
 }
 
 export function ControlBar({
   isMuted,
   isCameraOn,
+  isTorchAvailable,
+  isTorchOn,
   isAiSpeaking,
   onToggleMute,
   onEndSession,
   onToggleCamera,
+  onToggleTorch,
 }: ControlBarProps) {
   return (
     <div className="absolute bottom-0 left-0 right-0 safe-bottom">
@@ -38,6 +44,22 @@ export function ControlBar({
             </svg>
           )}
         </button>
+
+        {/* Flashlight toggle */}
+        {isTorchAvailable && (
+          <button
+            onClick={onToggleTorch}
+            className={`w-12 h-12 rounded-full flex items-center justify-center active:scale-95 transition-all ${
+              isTorchOn ? 'bg-amber-500 text-charcoal' : 'bg-white/15 text-white'
+            }`}
+            aria-label={isTorchOn ? 'Turn flashlight off' : 'Turn flashlight on'}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M9 2h6v6l-2 3v3h-2v-3L9 8V2z" />
+              <rect x="8" y="15" width="8" height="7" rx="2" />
+            </svg>
+          </button>
+        )}
 
         {/* Mic toggle */}
         <button

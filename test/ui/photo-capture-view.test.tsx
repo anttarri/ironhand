@@ -9,6 +9,7 @@ const cameraMocks = vi.hoisted(() => ({
   stopCamera: vi.fn(),
   capturePhoto: vi.fn(() => 'base64-photo-data'),
   toggleCamera: vi.fn(async () => {}),
+  toggleTorch: vi.fn(async () => {}),
 }));
 
 vi.mock('../../src/hooks/useCamera', () => ({
@@ -17,11 +18,14 @@ vi.mock('../../src/hooks/useCamera', () => ({
     isActive: true,
     isStreaming: false,
     facingMode: 'environment',
+    isTorchAvailable: true,
+    isTorchOn: false,
     startCamera: cameraMocks.startCamera,
     stopCamera: cameraMocks.stopCamera,
     startStreaming: vi.fn(),
     stopStreaming: vi.fn(),
     toggleCamera: cameraMocks.toggleCamera,
+    toggleTorch: cameraMocks.toggleTorch,
     capturePhoto: cameraMocks.capturePhoto,
   }),
 }));
@@ -69,5 +73,13 @@ describe('PhotoCaptureView', () => {
         createdAt: expect.any(Number),
       }),
     );
+  });
+
+  it('toggles flash when torch is available', async () => {
+    const user = userEvent.setup();
+    render(<PhotoCaptureView onBack={() => {}} onCapture={() => {}} />);
+
+    await user.click(screen.getByRole('button', { name: /turn flashlight on/i }));
+    expect(cameraMocks.toggleTorch).toHaveBeenCalledTimes(1);
   });
 });

@@ -12,9 +12,12 @@ export function PhotoCaptureView({ onBack, onCapture }: PhotoCaptureViewProps) {
   const {
     videoRef,
     isActive,
+    isTorchAvailable,
+    isTorchOn,
     startCamera,
     stopCamera,
     capturePhoto,
+    toggleTorch,
   } = useCamera();
   const [capturedBase64, setCapturedBase64] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -68,8 +71,26 @@ export function PhotoCaptureView({ onBack, onCapture }: PhotoCaptureViewProps) {
         </button>
       </div>
 
-      <div className="absolute top-4 right-4 safe-top z-10 bg-black/50 rounded-full px-3 py-1 text-xs">
-        Snap Photo
+      <div className="absolute top-4 right-4 safe-top z-10 flex items-center gap-2">
+        {isTorchAvailable && (
+          <button
+            onClick={() => {
+              void toggleTorch();
+            }}
+            className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm ${
+              isTorchOn ? 'bg-amber-500 text-charcoal' : 'bg-black/50 text-white'
+            }`}
+            aria-label={isTorchOn ? 'Turn flashlight off' : 'Turn flashlight on'}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M9 2h6v6l-2 3v3h-2v-3L9 8V2z" />
+              <rect x="8" y="15" width="8" height="7" rx="2" />
+            </svg>
+          </button>
+        )}
+        <div className="bg-black/50 rounded-full px-3 py-1 text-xs">
+          Snap Photo
+        </div>
       </div>
 
       {error && (

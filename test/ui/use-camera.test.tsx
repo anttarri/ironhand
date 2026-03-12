@@ -39,4 +39,50 @@ describe('useCamera capturePhoto', () => {
     expect(mediaMocks.captureFrame).toHaveBeenCalledTimes(1);
     expect(mediaMocks.captureFrame).toHaveBeenCalledWith(video, expect.any(Number), expect.any(Number));
   });
+
+  it('detects torch support and applies torch constraints', async () => {
+    const applyConstraints = vi.fn(async () => {});
+    const track = {
+      stop: vi.fn(),
+      getCapabilities: () => ({ torch: true }),
+      applyConstraints,
+    };
+
+    Object.defineProperty(globalThis.navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        getUserMedia: vi.fn(async () => ({
+          getVideoTracks: () => [track],
+          getTracks: () => [track],
+        })),
+      },
+    });
+
+    const { result } = renderHook(() => useCamera());
+    const video = document.createElement('video');
+    Object.defineProperty(video, 'play', {
+      configurable: true,
+      value: vi.fn(async () => {}),
+    });
+
+    act(() => {
+      result.current.videoRef.current = video;
+    });
+
+    await act(async () => {
+      await result.current.startCamera();
+    });
+
+    expect(result.current.isTorchAvailable).toBe(true);
+    expect(result.current.isTorchOn).toBe(false);
+
+    await act(async () => {
+      await result.current.toggleTorch();
+    });
+
+    expect(applyConstraints).toHaveBeenCalledWith({
+      advanced: [{ torch: true }],
+    });
+    expect(result.current.isTorchOn).toBe(true);
+  });
 });

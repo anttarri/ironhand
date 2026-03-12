@@ -165,10 +165,15 @@ export function SessionView({ onEnd }: SessionViewProps) {
       <ControlBar
         isMuted={audio.isMuted}
         isCameraOn={camera.isActive}
+        isTorchAvailable={camera.isTorchAvailable}
+        isTorchOn={camera.isTorchOn}
         isAiSpeaking={audio.isAiSpeaking}
         onToggleMute={audio.toggleMute}
         onEndSession={handleEnd}
         onToggleCamera={camera.toggleCamera}
+        onToggleTorch={() => {
+          void camera.toggleTorch();
+        }}
       />
     </div>
   );

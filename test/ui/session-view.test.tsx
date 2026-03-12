@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   stopCamera: vi.fn(),
   startStreaming: vi.fn(),
   toggleCamera: vi.fn(async () => {}),
+  toggleTorch: vi.fn(async () => {}),
   startCallLog: vi.fn(() => ({ id: 'call-1' })),
   updateCallLogMessages: vi.fn(),
   finalizeCallLog: vi.fn(),
@@ -59,11 +60,14 @@ vi.mock('../../src/hooks/useCamera', () => ({
     isActive: true,
     isStreaming: true,
     facingMode: 'environment',
+    isTorchAvailable: true,
+    isTorchOn: false,
     startCamera: mocks.startCamera,
     stopCamera: mocks.stopCamera,
     startStreaming: mocks.startStreaming,
     stopStreaming: vi.fn(),
     toggleCamera: mocks.toggleCamera,
+    toggleTorch: mocks.toggleTorch,
     capturePhoto: vi.fn(),
   }),
 }));
@@ -98,6 +102,16 @@ describe('SessionView lifecycle', () => {
     expect(mocks.toggleCamera).toHaveBeenCalledTimes(1);
     expect(mocks.disconnect).not.toHaveBeenCalled();
     expect(mocks.cleanupAudio).not.toHaveBeenCalled();
+  });
+
+  it('flashlight toggle works without ending session', async () => {
+    const user = userEvent.setup();
+    render(<SessionView onEnd={() => {}} />);
+
+    await user.click(screen.getByRole('button', { name: /turn flashlight on/i }));
+
+    expect(mocks.toggleTorch).toHaveBeenCalledTimes(1);
+    expect(mocks.disconnect).not.toHaveBeenCalled();
   });
 
   it('end session tears down resources and exits', async () => {

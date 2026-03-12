@@ -69,3 +69,5 @@ The `dist/` folder can be deployed to Vercel, Netlify, or any static host.
 - **Camera**: 1 FPS JPEG frames streamed to Gemini
 - **Audio**: 16kHz PCM mic input, 24kHz PCM playback from Gemini
 - **Transcription**: Built-in input/output audio transcription for chat overlay
+
+test

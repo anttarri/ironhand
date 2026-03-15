@@ -9,8 +9,7 @@ export interface PhotoChatTurn {
 export interface PhotoChatTurnInput {
   text: string;
   history: PhotoChatTurn[];
-  imageBase64?: string;
-  includeImage: boolean;
+  images: string[];
 }
 
 export interface PhotoChatResponse {
@@ -76,11 +75,11 @@ export async function sendTurn(input: PhotoChatTurnInput): Promise<PhotoChatResp
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_PHOTO_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
   const userParts: Array<{ text?: string; inline_data?: { mime_type: string; data: string } }> = [];
-  if (input.includeImage && input.imageBase64) {
+  for (const imageBase64 of input.images) {
     userParts.push({
       inline_data: {
         mime_type: 'image/jpeg',
-        data: input.imageBase64,
+        data: imageBase64,
       },
     });
   }

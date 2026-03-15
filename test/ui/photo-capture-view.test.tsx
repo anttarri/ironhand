@@ -69,8 +69,10 @@ describe('PhotoCaptureView', () => {
     expect(onCapture).toHaveBeenCalledTimes(1);
     expect(onCapture).toHaveBeenCalledWith(
       expect.objectContaining({
+        id: expect.any(String),
         base64: 'base64-photo-data',
         createdAt: expect.any(Number),
+        source: 'camera',
       }),
     );
   });

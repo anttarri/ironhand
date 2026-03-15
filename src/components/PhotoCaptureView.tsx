@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useCamera } from '@/hooks/useCamera';
+import { createCapturedPhoto } from '@/services/photoUtils';
 import { CameraPreview } from './CameraPreview';
 import type { CapturedPhoto } from '@/types';
 
@@ -44,10 +45,7 @@ export function PhotoCaptureView({ onBack, onCapture }: PhotoCaptureViewProps) {
 
   const handleUsePhoto = () => {
     if (!capturedBase64) return;
-    onCapture({
-      base64: capturedBase64,
-      createdAt: Date.now(),
-    });
+    onCapture(createCapturedPhoto(capturedBase64, 'camera'));
   };
 
   return (

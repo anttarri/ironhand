@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 
 import App from '../../src/App';
 
@@ -10,10 +11,6 @@ const callLogMocks = vi.hoisted(() => ({
   startCallLog: vi.fn(),
   updateCallLogMessages: vi.fn(),
   finalizeCallLog: vi.fn(),
-}));
-
-const captureSequence = vi.hoisted(() => ({
-  value: 0,
 }));
 
 vi.mock('../../src/services/callLogStore', () => ({
@@ -39,35 +36,24 @@ vi.mock('../../src/components/CallDetailView', () => ({
   CallDetailView: () => <div>Detail</div>,
 }));
 
-vi.mock('../../src/components/PhotoCaptureView', () => ({
-  PhotoCaptureView: ({ onCapture }: { onCapture: (photo: { base64: string; createdAt: number }) => void }) => {
+vi.mock('../../src/components/PhotoChatView', () => ({
+  PhotoChatView: ({ onEnd }: { onEnd: () => void }) => {
+    const [localPhotos, setLocalPhotos] = useState(0);
+
     return (
-      <button
-        onClick={() => {
-          captureSequence.value += 1;
-          const next = captureSequence.value;
-          onCapture({ base64: `photo-${next}`, createdAt: 1700000000000 + next });
-        }}
-      >
-        Confirm Photo
-      </button>
+      <div>
+        <div>Photo Chat</div>
+        <div>Local Photos: {localPhotos}</div>
+        <button onClick={() => setLocalPhotos((count) => count + 1)}>Mock Add Photo</button>
+        <button onClick={onEnd}>End Photo Chat</button>
+      </div>
     );
   },
-}));
-
-vi.mock('../../src/components/PhotoChatView', () => ({
-  PhotoChatView: ({ photo, onEnd }: { photo: { base64: string }; onEnd: () => void }) => (
-    <div>
-      <div>Photo Chat: {photo.base64}</div>
-      <button onClick={onEnd}>End Photo Chat</button>
-    </div>
-  ),
 }));
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
-  captureSequence.value = 0;
 });
 
 describe('photo flow persistence guardrails', () => {
@@ -75,10 +61,9 @@ describe('photo flow persistence guardrails', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /snap photo/i }));
-    await user.click(screen.getByRole('button', { name: /confirm photo/i }));
+    await user.click(screen.getByRole('button', { name: /photo chat/i }));
 
-    expect(screen.getByText('Photo Chat: photo-1')).toBeInTheDocument();
+    expect(screen.getByText('Photo Chat')).toBeInTheDocument();
     expect(callLogMocks.startCallLog).not.toHaveBeenCalled();
     expect(callLogMocks.updateCallLogMessages).not.toHaveBeenCalled();
     expect(callLogMocks.finalizeCallLog).not.toHaveBeenCalled();
@@ -88,15 +73,16 @@ describe('photo flow persistence guardrails', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /snap photo/i }));
-    await user.click(screen.getByRole('button', { name: /confirm photo/i }));
-    expect(screen.getByText('Photo Chat: photo-1')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /photo chat/i }));
+    expect(screen.getByText('Local Photos: 0')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /mock add photo/i }));
+    expect(screen.getByText('Local Photos: 1')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /end photo chat/i }));
     expect(screen.getByRole('button', { name: /go live/i })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /snap photo/i }));
-    await user.click(screen.getByRole('button', { name: /confirm photo/i }));
-    expect(screen.getByText('Photo Chat: photo-2')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /photo chat/i }));
+    expect(screen.getByText('Local Photos: 0')).toBeInTheDocument();
   });
 });

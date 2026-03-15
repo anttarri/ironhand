@@ -3,47 +3,111 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 
 import { useGeminiPhotoChat } from '../../src/hooks/useGeminiPhotoChat';
+import type { CapturedPhoto } from '../../src/types';
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
 describe('useGeminiPhotoChat', () => {
-  it('includes image on first user turn and excludes it afterward', async () => {
-    const sendTurn = vi.fn()
-      .mockResolvedValueOnce({ text: 'First response' })
-      .mockResolvedValueOnce({ text: 'Second response' });
+  function makePhoto(id: string): CapturedPhoto {
+    return {
+      id,
+      base64: `${id}-data`,
+      createdAt: 1700000000000,
+      source: 'upload',
+    };
+  }
 
-    const { result } = renderHook(() => useGeminiPhotoChat({ photoBase64: 'photo-data', client: { sendTurn } }));
+  it('sends all attached photos with a message', async () => {
+    const sendTurn = vi.fn()
+      .mockResolvedValueOnce({ text: 'First response' });
+
+    const { result } = renderHook(() => useGeminiPhotoChat({ client: { sendTurn } }));
+
+    await act(async () => {
+      result.current.addPhotos([
+        makePhoto('photo-1'),
+        makePhoto('photo-2'),
+        makePhoto('photo-3'),
+        makePhoto('photo-4'),
+        makePhoto('photo-5'),
+      ]);
+    });
 
     await act(async () => {
       await result.current.sendText('What do you see?');
     });
 
-    await act(async () => {
-      await result.current.sendText('What should I do next?');
-    });
-
-    expect(sendTurn).toHaveBeenNthCalledWith(1, expect.objectContaining({
+    expect(sendTurn).toHaveBeenCalledWith(expect.objectContaining({
       text: 'What do you see?',
-      includeImage: true,
-      imageBase64: 'photo-data',
-    }));
-
-    expect(sendTurn).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      text: 'What should I do next?',
-      includeImage: false,
+      images: [
+        'photo-1-data',
+        'photo-2-data',
+        'photo-3-data',
+        'photo-4-data',
+        'photo-5-data',
+      ],
     }));
   });
 
-  it('stores failed turn and retries it', async () => {
+  it('resends the full attached photo set on later turns after more photos are added', async () => {
+    const sendTurn = vi.fn()
+      .mockResolvedValueOnce({ text: 'First response' })
+      .mockResolvedValueOnce({ text: 'Second response' });
+
+    const { result } = renderHook(() => useGeminiPhotoChat({ client: { sendTurn } }));
+
+    await act(async () => {
+      result.current.addPhotos([makePhoto('photo-1')]);
+      await result.current.sendText('First question');
+    });
+
+    await act(async () => {
+      result.current.addPhotos([makePhoto('photo-2')]);
+      await result.current.sendText('Follow-up question');
+    });
+
+    expect(sendTurn).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      text: 'Follow-up question',
+      images: ['photo-1-data', 'photo-2-data'],
+      history: [
+        { role: 'user', text: 'First question' },
+        { role: 'ai', text: 'First response' },
+      ],
+    }));
+  });
+
+  it('rejects photos above the five-photo cap', async () => {
+    const sendTurn = vi.fn();
+    const { result } = renderHook(() => useGeminiPhotoChat({ client: { sendTurn } }));
+
+    let addResult: { added: number; rejected: number } | undefined;
+
+    await act(async () => {
+      result.current.addPhotos([
+        makePhoto('photo-1'),
+        makePhoto('photo-2'),
+        makePhoto('photo-3'),
+        makePhoto('photo-4'),
+        makePhoto('photo-5'),
+      ]);
+      addResult = result.current.addPhotos([makePhoto('photo-6')]);
+    });
+
+    expect(result.current.photos).toHaveLength(5);
+    expect(addResult).toEqual({ added: 0, rejected: 1 });
+  });
+
+  it('stores failed turn and retries it with the same photos', async () => {
     const sendTurn = vi.fn()
       .mockRejectedValueOnce(new Error('temporary failure'))
       .mockResolvedValueOnce({ text: 'Recovered response' });
 
-    const { result } = renderHook(() => useGeminiPhotoChat({ photoBase64: 'photo-data', client: { sendTurn } }));
+    const { result } = renderHook(() => useGeminiPhotoChat({ client: { sendTurn } }));
 
     await act(async () => {
+      result.current.addPhotos([makePhoto('photo-1'), makePhoto('photo-2')]);
       await result.current.sendText('Need help');
     });
 
@@ -54,13 +118,17 @@ describe('useGeminiPhotoChat', () => {
     });
 
     expect(sendTurn).toHaveBeenCalledTimes(2);
+    expect(sendTurn).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      text: 'Need help',
+      images: ['photo-1-data', 'photo-2-data'],
+    }));
     expect(result.current.error).toBeNull();
     expect(result.current.messages[result.current.messages.length - 1]?.text).toBe('Recovered response');
   });
 
   it('ignores blank text submits', async () => {
     const sendTurn = vi.fn();
-    const { result } = renderHook(() => useGeminiPhotoChat({ photoBase64: 'photo-data', client: { sendTurn } }));
+    const { result } = renderHook(() => useGeminiPhotoChat({ client: { sendTurn } }));
 
     await act(async () => {
       await result.current.sendText('   ');

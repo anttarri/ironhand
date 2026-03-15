@@ -32,7 +32,7 @@ export function StartScreen({ onStartLive, onStartPhoto, onOpenHistory }: StartS
           onClick={onStartPhoto}
           className="w-full bg-white/10 hover:bg-white/15 text-white font-semibold rounded-xl py-4 text-base transition-colors active:scale-[0.98] border border-white/15"
         >
-          Snap Photo
+          Photo Chat
         </button>
 
         <button

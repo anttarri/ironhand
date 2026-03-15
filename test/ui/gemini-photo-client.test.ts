@@ -8,7 +8,7 @@ afterEach(() => {
 });
 
 describe('geminiPhotoClient.sendTurn', () => {
-  it('sends image + text on first turn and returns AI text', async () => {
+  it('sends all attached images before the current text turn and returns AI text', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({
         ok: true,
@@ -31,8 +31,7 @@ describe('geminiPhotoClient.sendTurn', () => {
 
     const result = await sendTurn({
       text: 'What do you see?',
-      imageBase64: 'photo-data',
-      includeImage: true,
+      images: ['photo-1', 'photo-2', 'photo-3'],
       history: [],
     });
 
@@ -42,11 +41,13 @@ describe('geminiPhotoClient.sendTurn', () => {
     const requestBody = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
     const parts = requestBody.contents[0].parts;
     expect(parts[0].inline_data.mime_type).toBe('image/jpeg');
-    expect(parts[0].inline_data.data).toBe('photo-data');
-    expect(parts[1].text).toBe('What do you see?');
+    expect(parts[0].inline_data.data).toBe('photo-1');
+    expect(parts[1].inline_data.data).toBe('photo-2');
+    expect(parts[2].inline_data.data).toBe('photo-3');
+    expect(parts[3].text).toBe('What do you see?');
   });
 
-  it('sends text-only follow-up turns with prior history', async () => {
+  it('resends all attached images on follow-up turns together with prior history', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({
         ok: true,
@@ -69,7 +70,7 @@ describe('geminiPhotoClient.sendTurn', () => {
 
     await sendTurn({
       text: 'What next?',
-      includeImage: false,
+      images: ['photo-1', 'photo-2'],
       history: [
         { role: 'user', text: 'What do you see?' },
         { role: 'ai', text: 'You have a crowded neutral bar.' },
@@ -88,7 +89,57 @@ describe('geminiPhotoClient.sendTurn', () => {
       },
       {
         role: 'user',
-        parts: [{ text: 'What next?' }],
+        parts: [
+          {
+            inline_data: {
+              mime_type: 'image/jpeg',
+              data: 'photo-1',
+            },
+          },
+          {
+            inline_data: {
+              mime_type: 'image/jpeg',
+              data: 'photo-2',
+            },
+          },
+          { text: 'What next?' },
+        ],
+      },
+    ]);
+  });
+
+  it('supports text-only turns when no photos are attached', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ key: 'test-key' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Need a closer look.' }],
+              },
+            },
+          ],
+        }),
+      });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    await sendTurn({
+      text: 'Can you help?',
+      images: [],
+      history: [],
+    });
+
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
+    expect(requestBody.contents).toEqual([
+      {
+        role: 'user',
+        parts: [{ text: 'Can you help?' }],
       },
     ]);
   });
@@ -110,7 +161,7 @@ describe('geminiPhotoClient.sendTurn', () => {
     await expect(
       sendTurn({
         text: 'hello',
-        includeImage: false,
+        images: [],
         history: [],
       }),
     ).rejects.toEqual(

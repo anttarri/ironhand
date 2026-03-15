@@ -16,13 +16,13 @@ export function StatusIndicator({ state, error }: StatusIndicatorProps) {
   const config = stateConfig[state];
 
   return (
-    <div className="flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-full px-3 py-1.5">
+    <div className="flex items-center gap-2 glass-elevated rounded-full px-3 py-1.5">
       <span
-        className={`w-2.5 h-2.5 rounded-full ${config.color} ${
+        className={`w-2 h-2 rounded-full ${config.color} ${
           config.pulse ? 'animate-pulse-dot' : ''
         }`}
       />
-      <span className="text-xs font-medium text-white/90">
+      <span className="text-[11px] font-mono font-medium text-white/85 uppercase tracking-wider">
         {state === 'error' && error ? error : config.label}
       </span>
     </div>

@@ -30,12 +30,12 @@ export function TextComposer({
         value={text}
         onChange={(event) => setText(event.target.value)}
         placeholder={placeholder}
-        className="flex-1 rounded-xl bg-white/10 border border-white/20 px-3 py-2 text-sm text-white placeholder:text-white/45 outline-none focus:border-amber-500"
+        className="flex-1 rounded-xl bg-white/[0.07] border border-white/10 px-3.5 py-2.5 text-sm text-white placeholder:text-white/35 outline-none focus:border-amber-500 transition-colors"
       />
       <button
         type="submit"
         disabled={!trimmed || isBusy}
-        className="px-3 py-2 rounded-xl bg-amber-500 text-charcoal text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        className="px-3.5 py-2.5 rounded-xl bg-amber-500 text-charcoal text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97] transition-all"
       >
         {submitLabel}
       </button>

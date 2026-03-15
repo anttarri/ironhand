@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useGeminiLive } from '@/hooks/useGeminiLive';
 import { useAudio } from '@/hooks/useAudio';
 import { useCamera } from '@/hooks/useCamera';
@@ -9,6 +9,8 @@ import { ChatOverlay } from './ChatOverlay';
 import { ControlBar } from './ControlBar';
 import { StatusIndicator } from './StatusIndicator';
 import { TextComposer } from './TextComposer';
+
+type VideoMode = 'live' | 'photo';
 
 interface SessionViewProps {
   onEnd: () => void;
@@ -22,6 +24,10 @@ export function SessionView({ onEnd }: SessionViewProps) {
   const saveTimerRef = useRef<number | null>(null);
   const latestMessagesRef = useRef(gemini.messages);
   const hasEndedRef = useRef(false);
+
+  const [videoMode, setVideoMode] = useState<VideoMode>('live');
+  const [photoFlash, setPhotoFlash] = useState(false);
+  const [lastPhotoThumb, setLastPhotoThumb] = useState<string | null>(null);
 
   const audio = useAudio({
     onAudioChunk: gemini.sendAudio,
@@ -120,10 +126,33 @@ export function SessionView({ onEnd }: SessionViewProps) {
       audio.startCapture().catch(() => {
         // Mic permission denied
       });
-      camera.startStreaming();
+      if (videoMode === 'live') {
+        camera.startStreaming();
+      }
     }
     prevStateRef.current = gemini.state;
-  }, [gemini.state, audio, camera]);
+  }, [gemini.state, audio, camera, videoMode]);
+
+  const handleToggleVideoMode = useCallback(() => {
+    if (videoMode === 'live') {
+      camera.stopStreaming();
+      setVideoMode('photo');
+    } else {
+      camera.startStreaming();
+      setVideoMode('live');
+      setLastPhotoThumb(null);
+    }
+  }, [videoMode, camera]);
+
+  const handleCaptureAndSend = useCallback(() => {
+    const frame = camera.capturePhoto();
+    if (frame) {
+      gemini.sendVideo(frame);
+      setLastPhotoThumb(frame);
+      setPhotoFlash(true);
+      setTimeout(() => setPhotoFlash(false), 150);
+    }
+  }, [camera, gemini]);
 
   const handleEnd = useCallback(() => {
     hasEndedRef.current = true;
@@ -138,17 +167,35 @@ export function SessionView({ onEnd }: SessionViewProps) {
   return (
     <div className="relative h-full w-full overflow-hidden bg-charcoal">
       {/* Camera feed - full screen background */}
-      <CameraPreview videoRef={camera.videoRef} isActive={camera.isActive} />
+      <CameraPreview videoRef={camera.videoRef} isActive={camera.isActive} videoMode={videoMode} />
+
+      {/* Flash overlay */}
+      {photoFlash && (
+        <div className="absolute inset-0 bg-white/70 z-20 pointer-events-none animate-flash" />
+      )}
 
       {/* Status indicator - top left */}
       <div className="absolute top-4 left-4 safe-top z-10">
         <StatusIndicator state={gemini.state} error={gemini.error} />
       </div>
 
+      {/* Last photo thumbnail - shown in photo mode */}
+      {videoMode === 'photo' && lastPhotoThumb && (
+        <div className="absolute top-4 right-4 safe-top z-10">
+          <div className="w-16 h-16 rounded-lg overflow-hidden border-2 border-white/40 shadow-lg">
+            <img
+              src={`data:image/jpeg;base64,${lastPhotoThumb}`}
+              alt="Last sent photo"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Chat overlay */}
       <ChatOverlay messages={gemini.messages} />
 
-      {/* Text fallback when live video is disabled */}
+      {/* Text fallback when camera is unavailable */}
       {!camera.isActive && gemini.state === 'active' && (
         <div className="absolute left-3 right-3 bottom-[7.5rem] z-10">
           <TextComposer
@@ -165,12 +212,14 @@ export function SessionView({ onEnd }: SessionViewProps) {
       <ControlBar
         isMuted={audio.isMuted}
         isCameraOn={camera.isActive}
+        videoMode={videoMode}
         isTorchAvailable={camera.isTorchAvailable}
         isTorchOn={camera.isTorchOn}
         isAiSpeaking={audio.isAiSpeaking}
         onToggleMute={audio.toggleMute}
         onEndSession={handleEnd}
-        onToggleCamera={camera.toggleCamera}
+        onToggleVideoMode={handleToggleVideoMode}
+        onCapturePhoto={handleCaptureAndSend}
         onToggleTorch={() => {
           void camera.toggleTorch();
         }}

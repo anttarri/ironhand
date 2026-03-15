@@ -1,24 +1,27 @@
 interface ControlBarProps {
   isMuted: boolean;
   isCameraOn: boolean;
+  videoMode: 'live' | 'photo';
   isTorchAvailable: boolean;
   isTorchOn: boolean;
   isAiSpeaking: boolean;
   onToggleMute: () => void;
   onEndSession: () => void;
-  onToggleCamera: () => void;
+  onToggleVideoMode: () => void;
+  onCapturePhoto: () => void;
   onToggleTorch: () => void;
 }
 
 export function ControlBar({
   isMuted,
-  isCameraOn,
+  videoMode,
   isTorchAvailable,
   isTorchOn,
   isAiSpeaking,
   onToggleMute,
   onEndSession,
-  onToggleCamera,
+  onToggleVideoMode,
+  onCapturePhoto,
   onToggleTorch,
 }: ControlBarProps) {
   return (
@@ -26,31 +29,46 @@ export function ControlBar({
       <div className="px-4 pb-4 pt-16 bg-gradient-to-t from-black/90 via-black/50 to-transparent">
         {/* Glass tray */}
         <div className="glass-elevated flex items-end justify-center gap-3 px-4 py-3 rounded-[20px]">
-          {/* Left group: Camera + Torch */}
+          {/* Left group: Video Mode + Shutter + Torch */}
           <div className="flex items-end gap-2">
-            {/* Camera toggle */}
+            {/* Video mode toggle */}
             <div className="flex flex-col items-center gap-1.5">
               <button
-                onClick={onToggleCamera}
+                onClick={onToggleVideoMode}
                 className={`w-14 h-14 rounded-full flex items-center justify-center active:scale-95 transition-all ${
-                  isCameraOn ? 'bg-white/12' : 'bg-danger'
+                  videoMode === 'live' ? 'bg-white/12' : 'bg-amber-500'
                 }`}
-                aria-label={isCameraOn ? 'Turn camera off' : 'Turn camera on'}
+                aria-label={videoMode === 'live' ? 'Switch to photo mode' : 'Switch to live video'}
               >
-                {isCameraOn ? (
+                {videoMode === 'live' ? (
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-white">
                     <path d="M23 7l-7 5 7 5V7z" />
                     <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
                   </svg>
                 ) : (
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-white">
-                    <path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10" />
-                    <line x1="1" y1="1" x2="23" y2="23" />
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-charcoal">
+                    <rect x="2" y="6" width="20" height="14" rx="2" />
+                    <circle cx="12" cy="13" r="4" />
+                    <circle cx="12" cy="13" r="1.5" fill="currentColor" />
                   </svg>
                 )}
               </button>
-              <span className="text-[10px] font-mono font-medium text-white/35 uppercase tracking-wider">Cam</span>
+              <span className="text-[10px] font-mono font-medium text-white/35 uppercase tracking-wider">
+                {videoMode === 'live' ? 'Live' : 'Photo'}
+              </span>
             </div>
+
+            {/* Shutter button - only visible in photo mode */}
+            {videoMode === 'photo' && (
+              <div className="flex flex-col items-center gap-1.5">
+                <button
+                  onClick={onCapturePhoto}
+                  className="w-12 h-12 rounded-full border-[3px] border-white/85 bg-white/20 active:bg-white/40 active:scale-95 transition-all"
+                  aria-label="Take photo"
+                />
+                <span className="text-[10px] font-mono font-medium text-white/35 uppercase tracking-wider">Snap</span>
+              </div>
+            )}
 
             {/* Torch toggle */}
             {isTorchAvailable && (

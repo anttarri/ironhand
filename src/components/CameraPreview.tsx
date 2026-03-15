@@ -3,9 +3,10 @@ import { RefObject } from 'react';
 interface CameraPreviewProps {
   videoRef: RefObject<HTMLVideoElement | null>;
   isActive: boolean;
+  videoMode?: 'live' | 'photo';
 }
 
-export function CameraPreview({ videoRef, isActive }: CameraPreviewProps) {
+export function CameraPreview({ videoRef, isActive, videoMode }: CameraPreviewProps) {
   return (
     <div className="absolute inset-0 bg-charcoal">
       <video
@@ -15,6 +16,13 @@ export function CameraPreview({ videoRef, isActive }: CameraPreviewProps) {
         muted
         className={`camera-video ${isActive ? 'opacity-100' : 'opacity-0'}`}
       />
+      {isActive && videoMode === 'photo' && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
+          <div className="bg-amber-500/80 backdrop-blur-sm rounded-full px-3 py-1 text-xs font-mono font-semibold text-charcoal uppercase tracking-wider">
+            Photo Mode
+          </div>
+        </div>
+      )}
       {!isActive && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/20">

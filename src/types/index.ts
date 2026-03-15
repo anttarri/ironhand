@@ -3,14 +3,15 @@ export type SessionState = 'idle' | 'connecting' | 'active' | 'error';
 export type AppScreen =
   | 'start'
   | 'live-session'
-  | 'photo-capture'
   | 'photo-chat'
   | 'history'
   | 'call-detail';
 
 export interface CapturedPhoto {
+  id: string;
   base64: string;
   createdAt: number;
+  source: 'camera' | 'upload';
 }
 
 export interface PhotoChatMessage {

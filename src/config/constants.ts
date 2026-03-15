@@ -3,6 +3,8 @@ export const GEMINI_WS_URL =
 
 export const GEMINI_MODEL = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
 export const GEMINI_PHOTO_MODEL = 'gemini-2.5-flash';
+export const MAX_PHOTO_CHAT_PHOTOS = 5;
+export const PHOTO_CHAT_LIMIT_MESSAGE = 'You can only upload up to 5 photos in one chat. Start a new chat or use the livestream feature.';
 
 // Timeout (ms) for WebSocket to reach 'active' state
 export const CONNECTION_TIMEOUT_MS = 15_000;

@@ -1,28 +1,24 @@
 import { useState } from 'react';
 import { CallDetailView } from '@/components/CallDetailView';
 import { CallHistoryView } from '@/components/CallHistoryView';
-import { PhotoCaptureView } from '@/components/PhotoCaptureView';
 import { PhotoChatView } from '@/components/PhotoChatView';
 import { StartScreen } from '@/components/StartScreen';
 import { SessionView } from '@/components/SessionView';
-import type { AppScreen, CapturedPhoto } from '@/types';
+import type { AppScreen } from '@/types';
 
 export default function App() {
   const [screen, setScreen] = useState<AppScreen>('start');
   const [activeCallId, setActiveCallId] = useState<string | null>(null);
-  const [capturedPhoto, setCapturedPhoto] = useState<CapturedPhoto | null>(null);
 
   const handleStartLive = () => {
     setScreen('live-session');
   };
 
   const handleStartPhoto = () => {
-    setCapturedPhoto(null);
-    setScreen('photo-capture');
+    setScreen('photo-chat');
   };
 
   const handleEnd = () => {
-    setCapturedPhoto(null);
     setScreen('start');
   };
 
@@ -39,11 +35,6 @@ export default function App() {
     setScreen('history');
   };
 
-  const handlePhotoCaptured = (photo: CapturedPhoto) => {
-    setCapturedPhoto(photo);
-    setScreen('photo-chat');
-  };
-
   return (
     <div className="h-full">
       {screen === 'start' && (
@@ -54,15 +45,8 @@ export default function App() {
         />
       )}
       {screen === 'live-session' && <SessionView onEnd={handleEnd} />}
-      {screen === 'photo-capture' && (
-        <PhotoCaptureView
-          onBack={handleEnd}
-          onCapture={handlePhotoCaptured}
-        />
-      )}
-      {screen === 'photo-chat' && capturedPhoto && (
+      {screen === 'photo-chat' && (
         <PhotoChatView
-          photo={capturedPhoto}
           onEnd={handleEnd}
         />
       )}

@@ -35,21 +35,7 @@ vi.mock('../../src/components/CallDetailView', () => ({
 }));
 
 vi.mock('../../src/components/PhotoCaptureView', () => ({
-  PhotoCaptureView: ({
-    onBack,
-    onCapture,
-  }: {
-    onBack: () => void;
-    onCapture: (photo: { base64: string; createdAt: number }) => void;
-  }) => (
-    <div>
-      <div>Photo Capture Mock</div>
-      <button onClick={() => onCapture({ base64: 'image-data', createdAt: 1700000000000 })}>
-        Confirm Photo
-      </button>
-      <button onClick={onBack}>Back From Photo Capture</button>
-    </div>
-  ),
+  PhotoCaptureView: () => <div>Photo Capture Mock</div>,
 }));
 
 vi.mock('../../src/components/PhotoChatView', () => ({
@@ -66,11 +52,11 @@ afterEach(() => {
 });
 
 describe('mockup start actions', () => {
-  it('shows Go Live and Snap Photo actions on the start screen', () => {
+  it('shows Go Live and Photo Chat actions on the start screen', () => {
     render(<StartScreen onStartLive={() => {}} onStartPhoto={() => {}} onOpenHistory={() => {}} />);
 
     expect(screen.getByRole('button', { name: /go live/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /snap photo/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /photo chat/i })).toBeInTheDocument();
   });
 
   it('routes Go Live to live-session and allows ending back to start', async () => {
@@ -84,14 +70,11 @@ describe('mockup start actions', () => {
     expect(screen.getByRole('button', { name: /go live/i })).toBeInTheDocument();
   });
 
-  it('routes Snap Photo to photo capture and then to photo chat', async () => {
+  it('routes Photo Chat directly to photo chat', async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /snap photo/i }));
-    expect(screen.getByText('Photo Capture Mock')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: /confirm photo/i }));
+    await user.click(screen.getByRole('button', { name: /photo chat/i }));
     expect(screen.getByText('Photo Chat Mock')).toBeInTheDocument();
   });
 });

@@ -29,7 +29,7 @@ export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
   return (
     <div className="relative h-full flex flex-col bg-charcoal text-white">
       {/* Header */}
-      <div className="safe-top px-6 pt-4 pb-3 border-b border-white/[0.06] glass-elevated">
+      <div className="safe-top px-6 pt-6 pb-3 border-b border-white/[0.06] glass-elevated">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="text-lg font-bold tracking-tight">Photo Chat</h1>
@@ -183,7 +183,7 @@ export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
       )}
 
       {/* Composer */}
-      <div className="safe-bottom px-6 pb-4">
+      <div className="safe-bottom px-6 pb-6">
         <TextComposer
           placeholder="Ask about your photos"
           submitLabel="Send"

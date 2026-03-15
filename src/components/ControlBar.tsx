@@ -28,7 +28,11 @@ export function ControlBar({
     <div className="absolute bottom-0 left-0 right-0 safe-bottom">
       <div className="px-4 pb-4 pt-16 bg-gradient-to-t from-black/90 via-black/50 to-transparent">
         {/* Glass tray */}
-        <div className="glass-elevated flex items-end justify-center gap-3 px-4 py-3 rounded-[20px]">
+        <div className={`flex items-end justify-center gap-3 px-4 py-3 rounded-[20px] transition-colors duration-300 ${
+          videoMode === 'photo'
+            ? 'bg-amber-500/10 border border-amber-500/20 backdrop-blur-xl'
+            : 'glass-elevated'
+        }`}>
           {/* Left group: Video Mode + Shutter + Torch */}
           <div className="flex items-end gap-2">
             {/* Video mode toggle */}
@@ -53,9 +57,14 @@ export function ControlBar({
                   </svg>
                 )}
               </button>
-              <span className="text-[10px] font-mono font-medium text-white/35 uppercase tracking-wider">
-                {videoMode === 'live' ? 'Live' : 'Photo'}
-              </span>
+              {videoMode === 'live' ? (
+                <div className="flex items-center gap-1 justify-center">
+                  <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse-dot" />
+                  <span className="text-[10px] font-mono font-medium text-white/55 uppercase tracking-wider">Live</span>
+                </div>
+              ) : (
+                <span className="text-[10px] font-mono font-medium text-amber-500/70 uppercase tracking-wider">Photo</span>
+              )}
             </div>
 
             {/* Shutter button - only visible in photo mode */}

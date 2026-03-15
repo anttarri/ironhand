@@ -169,6 +169,11 @@ export function SessionView({ onEnd }: SessionViewProps) {
       {/* Camera feed - full screen background */}
       <CameraPreview videoRef={camera.videoRef} isActive={camera.isActive} videoMode={videoMode} />
 
+      {/* Mode indicator border */}
+      <div className={`absolute inset-0 z-10 pointer-events-none border-[3px] transition-colors duration-300 ${
+        videoMode === 'live' ? 'border-danger/40' : 'border-amber-500/50'
+      }`} />
+
       {/* Flash overlay */}
       {photoFlash && (
         <div className="absolute inset-0 bg-white/70 z-20 pointer-events-none animate-flash" />

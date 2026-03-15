@@ -44,7 +44,7 @@ export function CallHistoryView({ onBack, onOpenCall, onStartSession }: CallHist
   return (
     <div className="h-full flex flex-col bg-charcoal text-white">
       {/* Header */}
-      <div className="safe-top px-4 pt-4 pb-3 border-b border-white/[0.06] glass-elevated">
+      <div className="safe-top px-6 pt-4 pb-3 border-b border-white/[0.06] glass-elevated">
         <div className="flex items-center justify-between gap-3">
           <button
             onClick={onBack}
@@ -70,7 +70,7 @@ export function CallHistoryView({ onBack, onOpenCall, onStartSession }: CallHist
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto chat-scroll px-4 py-4">
+      <div className="flex-1 overflow-y-auto chat-scroll px-6 py-4">
         {logs.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-6">
             <div className="w-20 h-20 rounded-3xl bg-white/[0.04] flex items-center justify-center mb-5">

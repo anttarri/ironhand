@@ -50,8 +50,8 @@ export function StartScreen({ onStartLive, onStartPhoto, onOpenHistory }: StartS
             </svg>
           </div>
           <div className="text-left flex-1">
-            <span className="block font-bold text-[15px]">Go Live</span>
-            <span className="block text-xs text-charcoal/65 font-medium mt-0.5">Camera + voice, hands-free</span>
+            <span className="block font-bold text-[15px]">Live Walkthrough</span>
+            <span className="block text-xs text-charcoal/65 font-medium mt-0.5">Point your camera, talk with voice</span>
           </div>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-charcoal/35 group-active:translate-x-0.5 transition-transform">
             <path d="M9 18l6-6-6-6" />
@@ -71,8 +71,8 @@ export function StartScreen({ onStartLive, onStartPhoto, onOpenHistory }: StartS
             </svg>
           </div>
           <div className="text-left flex-1">
-            <span className="block font-bold text-[15px]">Photo Chat</span>
-            <span className="block text-xs text-white/40 font-medium mt-0.5">Snap or upload, then ask</span>
+            <span className="block font-bold text-[15px]">Ask About Photos</span>
+            <span className="block text-xs text-white/40 font-medium mt-0.5">Snap or upload photos, ask with text</span>
           </div>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/20 group-active:translate-x-0.5 transition-transform">
             <path d="M9 18l6-6-6-6" />
@@ -88,7 +88,7 @@ export function StartScreen({ onStartLive, onStartPhoto, onOpenHistory }: StartS
             <circle cx="12" cy="12" r="10" />
             <path d="M12 6v6l4 2" />
           </svg>
-          <span>Call History</span>
+          <span>Session History</span>
         </button>
       </div>
 

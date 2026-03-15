@@ -59,7 +59,7 @@ export function CallDetailView({ callId, onBack, onDeleted }: CallDetailViewProp
         <p className="text-white/50 font-medium">Call not found</p>
         <button
           onClick={onBack}
-          className="mt-4 px-4 py-2 rounded-xl bg-white/[0.07] hover:bg-white/[0.12] transition-colors"
+          className="mt-4 px-6 py-2 rounded-xl bg-white/[0.07] hover:bg-white/[0.12] transition-colors"
         >
           Back to History
         </button>
@@ -70,7 +70,7 @@ export function CallDetailView({ callId, onBack, onDeleted }: CallDetailViewProp
   return (
     <div className="h-full flex flex-col bg-charcoal text-white">
       {/* Header */}
-      <div className="safe-top px-4 pt-4 pb-3 border-b border-white/[0.06] glass-elevated">
+      <div className="safe-top px-6 pt-4 pb-3 border-b border-white/[0.06] glass-elevated">
         <div className="flex items-center justify-between gap-3">
           <button
             onClick={onBack}
@@ -154,7 +154,7 @@ export function CallDetailView({ callId, onBack, onDeleted }: CallDetailViewProp
       </div>
 
       {/* Transcript */}
-      <div className="flex-1 overflow-y-auto chat-scroll px-3 py-4 space-y-2">
+      <div className="flex-1 overflow-y-auto chat-scroll px-6 py-4 space-y-2">
         {call.messages.length === 0 && (
           <div className="flex flex-col items-center justify-center text-center py-10">
             <div className="w-14 h-14 rounded-2xl bg-white/[0.04] flex items-center justify-center mb-4">

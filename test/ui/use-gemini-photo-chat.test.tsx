@@ -19,47 +19,57 @@ describe('useGeminiPhotoChat', () => {
     };
   }
 
-  it('sends all attached photos with the first photo turn and stores them on that user message', async () => {
+  it('queues photos separately from committed context until the user sends', async () => {
+    const sendTurn = vi.fn();
+    const { result } = renderHook(() => useGeminiPhotoChat({ client: { sendTurn } }));
+
+    let queueResult: { added: number; rejected: number } | undefined;
+
+    await act(async () => {
+      queueResult = result.current.queuePhotos([
+        makePhoto('photo-1'),
+        makePhoto('photo-2'),
+      ]);
+    });
+
+    expect(queueResult).toEqual({ added: 2, rejected: 0 });
+    expect(result.current.contextPhotos).toEqual([]);
+    expect(result.current.queuedPhotos).toEqual([
+      makePhoto('photo-1'),
+      makePhoto('photo-2'),
+    ]);
+    expect(sendTurn).not.toHaveBeenCalled();
+  });
+
+  it('removes a queued photo before send and excludes it from the next payload', async () => {
     const sendTurn = vi.fn()
       .mockResolvedValueOnce({ text: 'First response' });
 
     const { result } = renderHook(() => useGeminiPhotoChat({ client: { sendTurn } }));
 
     await act(async () => {
-      result.current.addPhotos([
+      result.current.queuePhotos([
         makePhoto('photo-1'),
         makePhoto('photo-2'),
-        makePhoto('photo-3'),
-        makePhoto('photo-4'),
-        makePhoto('photo-5'),
       ]);
+      result.current.removeQueuedPhoto('photo-2');
       await result.current.sendText('What do you see?');
     });
 
     expect(sendTurn).toHaveBeenCalledWith(expect.objectContaining({
       text: 'What do you see?',
-      images: [
-        'photo-1-data',
-        'photo-2-data',
-        'photo-3-data',
-        'photo-4-data',
-        'photo-5-data',
-      ],
+      images: ['photo-1-data'],
     }));
     expect(result.current.messages[0]).toEqual(expect.objectContaining({
       role: 'user',
       text: 'What do you see?',
-      photos: [
-        makePhoto('photo-1'),
-        makePhoto('photo-2'),
-        makePhoto('photo-3'),
-        makePhoto('photo-4'),
-        makePhoto('photo-5'),
-      ],
+      photos: [makePhoto('photo-1')],
     }));
+    expect(result.current.contextPhotos).toEqual([makePhoto('photo-1')]);
+    expect(result.current.queuedPhotos).toEqual([]);
   });
 
-  it('renders photos only on the next user turn while still sending the full accumulated photo context', async () => {
+  it('commits queued photos on send and preserves accumulated context on later turns', async () => {
     const sendTurn = vi.fn()
       .mockResolvedValueOnce({ text: 'First response' })
       .mockResolvedValueOnce({ text: 'Second response' })
@@ -68,16 +78,19 @@ describe('useGeminiPhotoChat', () => {
     const { result } = renderHook(() => useGeminiPhotoChat({ client: { sendTurn } }));
 
     await act(async () => {
-      result.current.addPhotos([makePhoto('photo-1')]);
+      result.current.queuePhotos([makePhoto('photo-1')]);
       await result.current.sendText('First question');
     });
+
+    expect(result.current.contextPhotos).toEqual([makePhoto('photo-1')]);
+    expect(result.current.queuedPhotos).toEqual([]);
 
     await act(async () => {
       await result.current.sendText('Follow-up question');
     });
 
     await act(async () => {
-      result.current.addPhotos([makePhoto('photo-2')]);
+      result.current.queuePhotos([makePhoto('photo-2')]);
       await result.current.sendText('And now?');
     });
 
@@ -116,30 +129,46 @@ describe('useGeminiPhotoChat', () => {
       text: 'And now?',
       photos: [makePhoto('photo-2')],
     }));
+    expect(result.current.contextPhotos).toEqual([makePhoto('photo-1'), makePhoto('photo-2')]);
+    expect(result.current.queuedPhotos).toEqual([]);
   });
 
-  it('rejects photos above the five-photo cap', async () => {
+  it('rejects photos above the five-photo cap across committed and queued photos', async () => {
     const sendTurn = vi.fn();
     const { result } = renderHook(() => useGeminiPhotoChat({ client: { sendTurn } }));
 
-    let addResult: { added: number; rejected: number } | undefined;
+    let queueResult: { added: number; rejected: number } | undefined;
 
     await act(async () => {
-      result.current.addPhotos([
+      result.current.queuePhotos([
         makePhoto('photo-1'),
         makePhoto('photo-2'),
+      ]);
+      await result.current.sendText('First question');
+    });
+
+    await act(async () => {
+      queueResult = result.current.queuePhotos([
         makePhoto('photo-3'),
         makePhoto('photo-4'),
         makePhoto('photo-5'),
+        makePhoto('photo-6'),
       ]);
-      addResult = result.current.addPhotos([makePhoto('photo-6')]);
     });
 
-    expect(result.current.photos).toHaveLength(5);
-    expect(addResult).toEqual({ added: 0, rejected: 1 });
+    expect(result.current.contextPhotos).toEqual([
+      makePhoto('photo-1'),
+      makePhoto('photo-2'),
+    ]);
+    expect(result.current.queuedPhotos).toEqual([
+      makePhoto('photo-3'),
+      makePhoto('photo-4'),
+      makePhoto('photo-5'),
+    ]);
+    expect(queueResult).toEqual({ added: 3, rejected: 1 });
   });
 
-  it('stores a failed turn with its photo bubble and retries it with the same accumulated photos', async () => {
+  it('retries a failed turn with its stored photos without restoring them to the queue', async () => {
     const sendTurn = vi.fn()
       .mockRejectedValueOnce(new Error('temporary failure'))
       .mockResolvedValueOnce({ text: 'Recovered response' });
@@ -147,7 +176,7 @@ describe('useGeminiPhotoChat', () => {
     const { result } = renderHook(() => useGeminiPhotoChat({ client: { sendTurn } }));
 
     await act(async () => {
-      result.current.addPhotos([makePhoto('photo-1'), makePhoto('photo-2')]);
+      result.current.queuePhotos([makePhoto('photo-1'), makePhoto('photo-2')]);
       await result.current.sendText('Need help');
     });
 
@@ -157,6 +186,8 @@ describe('useGeminiPhotoChat', () => {
       photos: [makePhoto('photo-1'), makePhoto('photo-2')],
       error: 'temporary failure',
     }));
+    expect(result.current.contextPhotos).toEqual([makePhoto('photo-1'), makePhoto('photo-2')]);
+    expect(result.current.queuedPhotos).toEqual([]);
 
     await act(async () => {
       await result.current.retry();
@@ -169,6 +200,7 @@ describe('useGeminiPhotoChat', () => {
     }));
     expect(result.current.error).toBeNull();
     expect(result.current.messages[result.current.messages.length - 1]?.text).toBe('Recovered response');
+    expect(result.current.queuedPhotos).toEqual([]);
   });
 
   it('ignores blank text submits', async () => {

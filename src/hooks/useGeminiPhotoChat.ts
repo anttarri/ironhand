@@ -20,7 +20,8 @@ function nextMessageId(): string {
 }
 
 export function useGeminiPhotoChat({ initialPhotos = [], client }: UseGeminiPhotoChatOptions) {
-  const [photos, setPhotos] = useState<CapturedPhoto[]>(initialPhotos);
+  const [contextPhotos, setContextPhotos] = useState<CapturedPhoto[]>(initialPhotos);
+  const [queuedPhotos, setQueuedPhotos] = useState<CapturedPhoto[]>([]);
   const [messages, setMessages] = useState<PhotoChatMessage[]>([]);
   const [state, setState] = useState<PhotoChatState>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -28,26 +29,32 @@ export function useGeminiPhotoChat({ initialPhotos = [], client }: UseGeminiPhot
   const retryTextRef = useRef<string | null>(null);
   const retryMessageIdRef = useRef<string | null>(null);
   const clientImpl = useMemo<PhotoChatClient>(() => client ?? { sendTurn }, [client]);
-  const photosRef = useRef<CapturedPhoto[]>(initialPhotos);
-  const pendingPhotosRef = useRef<CapturedPhoto[]>([]);
+  const contextPhotosRef = useRef<CapturedPhoto[]>(initialPhotos);
+  const queuedPhotosRef = useRef<CapturedPhoto[]>([]);
   const messagesRef = useRef<PhotoChatMessage[]>([]);
 
-  const addPhotos = useCallback((incomingPhotos: CapturedPhoto[]) => {
-    const availableSlots = Math.max(0, MAX_PHOTO_CHAT_PHOTOS - photosRef.current.length);
+  const queuePhotos = useCallback((incomingPhotos: CapturedPhoto[]) => {
+    const usedSlots = contextPhotosRef.current.length + queuedPhotosRef.current.length;
+    const availableSlots = Math.max(0, MAX_PHOTO_CHAT_PHOTOS - usedSlots);
     const accepted = incomingPhotos.slice(0, availableSlots);
     const rejected = incomingPhotos.length - accepted.length;
 
     if (accepted.length > 0) {
-      const next = [...photosRef.current, ...accepted];
-      photosRef.current = next;
-      pendingPhotosRef.current = [...pendingPhotosRef.current, ...accepted];
-      setPhotos(next);
+      const next = [...queuedPhotosRef.current, ...accepted];
+      queuedPhotosRef.current = next;
+      setQueuedPhotos(next);
     }
 
     return {
       added: accepted.length,
       rejected,
     };
+  }, []);
+
+  const removeQueuedPhoto = useCallback((photoId: string) => {
+    const next = queuedPhotosRef.current.filter((photo) => photo.id !== photoId);
+    queuedPhotosRef.current = next;
+    setQueuedPhotos(next);
   }, []);
 
   const submit = useCallback(async (rawText: string, reuseMessageId?: string) => {
@@ -77,8 +84,14 @@ export function useGeminiPhotoChat({ initialPhotos = [], client }: UseGeminiPhot
         return next;
       });
     } else {
-      const pendingPhotos = pendingPhotosRef.current;
-      pendingPhotosRef.current = [];
+      const pendingPhotos = queuedPhotosRef.current;
+      queuedPhotosRef.current = [];
+      setQueuedPhotos([]);
+      if (pendingPhotos.length > 0) {
+        const nextContextPhotos = [...contextPhotosRef.current, ...pendingPhotos];
+        contextPhotosRef.current = nextContextPhotos;
+        setContextPhotos(nextContextPhotos);
+      }
       const userMessage: PhotoChatMessage = {
         id: userMessageId,
         role: 'user',
@@ -101,7 +114,7 @@ export function useGeminiPhotoChat({ initialPhotos = [], client }: UseGeminiPhot
       const response = await clientImpl.sendTurn({
         text,
         history,
-        images: photosRef.current.map((photo) => photo.base64),
+        images: contextPhotosRef.current.map((photo) => photo.base64),
       });
 
       retryTextRef.current = null;
@@ -148,11 +161,13 @@ export function useGeminiPhotoChat({ initialPhotos = [], client }: UseGeminiPhot
   }, [submit]);
 
   return {
-    photos,
+    contextPhotos,
+    queuedPhotos,
     messages,
     state,
     error,
-    addPhotos,
+    queuePhotos,
+    removeQueuedPhoto,
     sendText,
     retry,
   };

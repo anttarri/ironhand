@@ -28,6 +28,7 @@ export function SessionView({ onEnd }: SessionViewProps) {
   const [videoMode, setVideoMode] = useState<VideoMode>('live');
   const [photoFlash, setPhotoFlash] = useState(false);
   const [lastPhotoThumb, setLastPhotoThumb] = useState<string | null>(null);
+  const [textDraft, setTextDraft] = useState('');
 
   const audio = useAudio({
     onAudioChunk: gemini.sendAudio,
@@ -204,9 +205,12 @@ export function SessionView({ onEnd }: SessionViewProps) {
       {!camera.isActive && gemini.state === 'active' && (
         <div className="absolute left-3 right-3 bottom-[7.5rem] z-10">
           <TextComposer
+            value={textDraft}
+            onChange={setTextDraft}
             placeholder="Type while video is off"
             submitLabel="Send"
             onSubmit={async (text) => {
+              setTextDraft('');
               gemini.sendText(text);
             }}
           />

@@ -7,6 +7,12 @@ import { loadCapturedPhotosFromFiles } from '@/services/photoUtils';
 import { PhotoCaptureView } from './PhotoCaptureView';
 import { TextComposer } from './TextComposer';
 
+const SUGGESTED_PROMPTS = [
+  'Find code violations',
+  'Identify this part',
+  'Run a panel inspection',
+] as const;
+
 interface PhotoChatViewProps {
   onEnd: () => void;
   client?: {
@@ -24,6 +30,7 @@ export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
   const [previewPhoto, setPreviewPhoto] = useState<CapturedPhoto | null>(null);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [draftText, setDraftText] = useState('');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleAddPhotos = (count: { added: number; rejected: number }) => {
@@ -31,6 +38,7 @@ export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
       window.alert(PHOTO_CHAT_LIMIT_MESSAGE);
     }
   };
+  const totalPhotoCount = chat.contextPhotos.length + chat.queuedPhotos.length;
 
   return (
     <div className="relative h-full flex flex-col bg-charcoal text-white">
@@ -125,10 +133,10 @@ export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
       <div className="safe-bottom px-6 pb-6 pt-2 border-t border-white/[0.06] bg-charcoal/95 backdrop-blur-sm space-y-3">
         <div className="flex items-center justify-between gap-3">
           <span className="text-[11px] text-white/35">
-            {formatContextCount(chat.photos.length)}
+            {formatContextCount(chat.contextPhotos.length)}
           </span>
           <div className="flex items-center gap-2">
-            {chat.photos.length < MAX_PHOTO_CHAT_PHOTOS && (
+            {totalPhotoCount < MAX_PHOTO_CHAT_PHOTOS && (
               <button
                 onClick={() => {
                   setAttachmentError(null);
@@ -166,7 +174,7 @@ export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
 
             try {
               const photos = await loadCapturedPhotosFromFiles(files);
-              handleAddPhotos(chat.addPhotos(photos));
+              handleAddPhotos(chat.queuePhotos(photos));
             } catch (err) {
               setAttachmentError(err instanceof Error ? err.message : 'Unable to process uploaded photos.');
             } finally {
@@ -176,10 +184,17 @@ export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
         />
 
         <TextComposer
+          value={draftText}
+          onChange={setDraftText}
           placeholder={isUploading ? 'Preparing photos…' : 'Ask about your photos'}
           submitLabel="Send"
           isBusy={chat.state === 'sending' || isUploading}
+          queuedPhotos={chat.queuedPhotos}
+          onRemoveQueuedPhoto={chat.removeQueuedPhoto}
+          suggestedPrompts={[...SUGGESTED_PROMPTS]}
+          onSelectSuggestedPrompt={(prompt) => setDraftText(prompt)}
           onSubmit={async (text) => {
+            setDraftText('');
             await chat.sendText(text);
           }}
         />
@@ -191,7 +206,7 @@ export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
             onBack={() => setIsCaptureOpen(false)}
             onCapture={(photo) => {
               setAttachmentError(null);
-              handleAddPhotos(chat.addPhotos([photo]));
+              handleAddPhotos(chat.queuePhotos([photo]));
               setIsCaptureOpen(false);
             }}
           />

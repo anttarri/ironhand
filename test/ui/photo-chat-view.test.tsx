@@ -57,10 +57,34 @@ describe('PhotoChatView', () => {
     expect(screen.getByRole('button', { name: /add photo/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /upload from gallery/i })).toBeInTheDocument();
     expect(screen.getByText('0 photos in context')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Find code violations' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Identify this part' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Run a panel inspection' })).toBeInTheDocument();
 
     expect(screen.queryByRole('button', { name: /mute/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /turn camera/i })).not.toBeInTheDocument();
     expect(useAudioSpy).not.toHaveBeenCalled();
+  });
+
+  it('prefills the composer when a suggested prompt is tapped and does not send immediately', async () => {
+    const user = userEvent.setup();
+    const sendTurn = vi.fn().mockResolvedValue({ text: 'ok' });
+
+    render(
+      <PhotoChatView
+        onEnd={() => {}}
+        client={{ sendTurn }}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Identify this part' }));
+
+    const composer = screen.getByPlaceholderText(/ask about your photos/i);
+    expect(composer).toHaveValue('Identify this part');
+    expect(sendTurn).not.toHaveBeenCalled();
+
+    await user.clear(composer);
+    expect(screen.getByRole('button', { name: 'Find code violations' })).toBeInTheDocument();
   });
 
   it('clears the composer immediately after send, before the request resolves', async () => {
@@ -124,8 +148,9 @@ describe('PhotoChatView', () => {
     ]);
 
     await waitFor(() => {
-      expect(screen.getByText('2 photos in context')).toBeInTheDocument();
+      expect(screen.getAllByRole('img', { name: /queued photo/i })).toHaveLength(2);
     });
+    expect(screen.getByText('0 photos in context')).toBeInTheDocument();
 
     await user.type(screen.getByPlaceholderText(/ask about your photos/i), 'What is my next step?');
     await user.click(screen.getByRole('button', { name: /send/i }));
@@ -136,6 +161,8 @@ describe('PhotoChatView', () => {
     expect(await screen.findByText('Start with verifying the breaker is off.')).toBeInTheDocument();
     expect(screen.getByText('What is my next step?')).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /open photo/i })).toHaveLength(2);
+    expect(screen.getByText('2 photos in context')).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /queued photo/i })).not.toBeInTheDocument();
   });
 
   it('preserves earlier photo turns while later text-only and later photo turns keep full context', async () => {
@@ -161,13 +188,15 @@ describe('PhotoChatView', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('1 photo in context')).toBeInTheDocument();
+      expect(screen.getByRole('img', { name: /queued photo 1/i })).toBeInTheDocument();
     });
+    expect(screen.getByText('0 photos in context')).toBeInTheDocument();
 
     await user.type(screen.getByPlaceholderText(/ask about your photos/i), 'What do you see?');
     await user.click(screen.getByRole('button', { name: /send/i }));
     expect(await screen.findByText('First response')).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /open photo/i })).toHaveLength(1);
+    expect(screen.getByText('1 photo in context')).toBeInTheDocument();
 
     await user.type(screen.getByPlaceholderText(/ask about your photos/i), 'Anything else?');
     await user.click(screen.getByRole('button', { name: /send/i }));
@@ -179,7 +208,8 @@ describe('PhotoChatView', () => {
     await user.click(screen.getByRole('button', { name: /confirm captured photo/i }));
 
     expect(screen.queryByText('Photo Capture Mock')).not.toBeInTheDocument();
-    expect(screen.getByText('2 photos in context')).toBeInTheDocument();
+    expect(screen.getByText('1 photo in context')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /queued photo 1/i })).toBeInTheDocument();
 
     await user.type(screen.getByPlaceholderText(/ask about your photos/i), 'And now?');
     await user.click(screen.getByRole('button', { name: /send/i }));
@@ -199,6 +229,7 @@ describe('PhotoChatView', () => {
     expect(await screen.findByText('Third response')).toBeInTheDocument();
     expect(screen.getByText('What do you see?')).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /open photo/i })).toHaveLength(2);
+    expect(screen.getByText('2 photos in context')).toBeInTheDocument();
   });
 
   it('opens an inline historical photo in a full-screen preview', async () => {
@@ -234,5 +265,45 @@ describe('PhotoChatView', () => {
     await user.click(screen.getByRole('button', { name: /close photo preview/i }));
     expect(screen.queryByRole('dialog', { name: /photo preview/i })).not.toBeInTheDocument();
     expect(screen.getByText('How does this look?')).toBeInTheDocument();
+  });
+
+  it('allows removing queued photos before send', async () => {
+    const user = userEvent.setup();
+    const sendTurn = vi.fn().mockResolvedValue({ text: 'Looks good.' });
+    loadPhotoFilesMock.mockResolvedValueOnce([
+      { id: 'upload-1', base64: 'preview-photo-1', createdAt: 1700000000000, source: 'upload' },
+      { id: 'upload-2', base64: 'preview-photo-2', createdAt: 1700000000001, source: 'upload' },
+    ]);
+
+    render(
+      <PhotoChatView
+        onEnd={() => {}}
+        client={{ sendTurn }}
+      />,
+    );
+
+    await user.upload(
+      screen.getByLabelText(/upload photos/i),
+      [
+        new File(['photo-1'], 'panel-1.png', { type: 'image/png' }),
+        new File(['photo-2'], 'panel-2.png', { type: 'image/png' }),
+      ],
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('img', { name: /queued photo/i })).toHaveLength(2);
+    });
+
+    await user.click(screen.getByRole('button', { name: /remove queued photo 2/i }));
+
+    expect(screen.getAllByRole('img', { name: /queued photo/i })).toHaveLength(1);
+
+    await user.type(screen.getByPlaceholderText(/ask about your photos/i), 'What now?');
+    await user.click(screen.getByRole('button', { name: /send/i }));
+
+    expect(sendTurn).toHaveBeenCalledWith(expect.objectContaining({
+      images: ['preview-photo-1'],
+    }));
+    expect(screen.getByText('1 photo in context')).toBeInTheDocument();
   });
 });

@@ -54,8 +54,8 @@ describe('PhotoChatView', () => {
     );
 
     expect(screen.getByText(/add photos and ask a question/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /add photo/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /upload from gallery/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /add photo/i })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /upload from gallery/i })).toHaveLength(1);
     expect(screen.getByText('0 photos in context')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Find code violations' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Identify this part' })).toBeInTheDocument();
@@ -64,6 +64,21 @@ describe('PhotoChatView', () => {
     expect(screen.queryByRole('button', { name: /mute/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /turn camera/i })).not.toBeInTheDocument();
     expect(useAudioSpy).not.toHaveBeenCalled();
+  });
+
+  it('opens photo capture from the empty-state add photo button', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <PhotoChatView
+        onEnd={() => {}}
+        client={{ sendTurn: vi.fn().mockResolvedValue({ text: 'ok' }) }}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /add photo/i }));
+
+    expect(screen.getByText('Photo Capture Mock')).toBeInTheDocument();
   });
 
   it('prefills the composer when a suggested prompt is tapped and does not send immediately', async () => {
@@ -150,6 +165,9 @@ describe('PhotoChatView', () => {
     await waitFor(() => {
       expect(screen.getAllByRole('img', { name: /queued photo/i })).toHaveLength(2);
     });
+    expect(screen.queryByText(/add photos and ask a question/i)).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /add photo/i })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /upload from gallery/i })).toHaveLength(1);
     expect(screen.getByText('0 photos in context')).toBeInTheDocument();
 
     await user.type(screen.getByPlaceholderText(/ask about your photos/i), 'What is my next step?');

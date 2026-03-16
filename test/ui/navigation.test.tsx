@@ -52,29 +52,29 @@ afterEach(() => {
 });
 
 describe('mockup start actions', () => {
-  it('shows Go Live and Photo Chat actions on the start screen', () => {
+  it('shows Live Walkthrough and Ask About Photos actions on the start screen', () => {
     render(<StartScreen onStartLive={() => {}} onStartPhoto={() => {}} onOpenHistory={() => {}} />);
 
-    expect(screen.getByRole('button', { name: /go live/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /photo chat/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /live walkthrough/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /ask about photos/i })).toBeInTheDocument();
   });
 
-  it('routes Go Live to live-session and allows ending back to start', async () => {
+  it('routes Live Walkthrough to live-session and allows ending back to start', async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /go live/i }));
+    await user.click(screen.getByRole('button', { name: /live walkthrough/i }));
     expect(screen.getByText('Live Session Mock')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /end live/i }));
-    expect(screen.getByRole('button', { name: /go live/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /live walkthrough/i })).toBeInTheDocument();
   });
 
-  it('routes Photo Chat directly to photo chat', async () => {
+  it('routes Ask About Photos directly to photo chat', async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /photo chat/i }));
+    await user.click(screen.getByRole('button', { name: /ask about photos/i }));
     expect(screen.getByText('Photo Chat Mock')).toBeInTheDocument();
   });
 });

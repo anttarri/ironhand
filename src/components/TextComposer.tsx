@@ -22,8 +22,8 @@ export function TextComposer({
       onSubmit={async (event) => {
         event.preventDefault();
         if (!trimmed || isBusy) return;
-        await onSubmit(trimmed);
         setText('');
+        await onSubmit(trimmed);
       }}
     >
       <input

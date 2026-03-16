@@ -19,6 +19,7 @@ export interface PhotoChatMessage {
   role: 'user' | 'ai' | 'system';
   text: string;
   timestamp: number;
+  photos?: CapturedPhoto[];
   error?: string;
 }
 

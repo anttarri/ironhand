@@ -29,6 +29,7 @@ export function useGeminiPhotoChat({ initialPhotos = [], client }: UseGeminiPhot
   const retryMessageIdRef = useRef<string | null>(null);
   const clientImpl = useMemo<PhotoChatClient>(() => client ?? { sendTurn }, [client]);
   const photosRef = useRef<CapturedPhoto[]>(initialPhotos);
+  const pendingPhotosRef = useRef<CapturedPhoto[]>([]);
   const messagesRef = useRef<PhotoChatMessage[]>([]);
 
   const addPhotos = useCallback((incomingPhotos: CapturedPhoto[]) => {
@@ -39,6 +40,7 @@ export function useGeminiPhotoChat({ initialPhotos = [], client }: UseGeminiPhot
     if (accepted.length > 0) {
       const next = [...photosRef.current, ...accepted];
       photosRef.current = next;
+      pendingPhotosRef.current = [...pendingPhotosRef.current, ...accepted];
       setPhotos(next);
     }
 
@@ -75,10 +77,13 @@ export function useGeminiPhotoChat({ initialPhotos = [], client }: UseGeminiPhot
         return next;
       });
     } else {
+      const pendingPhotos = pendingPhotosRef.current;
+      pendingPhotosRef.current = [];
       const userMessage: PhotoChatMessage = {
         id: userMessageId,
         role: 'user',
         text,
+        photos: pendingPhotos.length > 0 ? pendingPhotos : undefined,
         timestamp: Date.now(),
       };
 

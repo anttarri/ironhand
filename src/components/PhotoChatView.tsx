@@ -1,10 +1,17 @@
 import { useRef, useState } from 'react';
 import { MAX_PHOTO_CHAT_PHOTOS, PHOTO_CHAT_LIMIT_MESSAGE } from '@/config/constants';
+import type { CapturedPhoto } from '@/types';
 import type { PhotoChatTurnInput, PhotoChatResponse } from '@/services/geminiPhotoClient';
 import { useGeminiPhotoChat } from '@/hooks/useGeminiPhotoChat';
 import { loadCapturedPhotosFromFiles } from '@/services/photoUtils';
 import { PhotoCaptureView } from './PhotoCaptureView';
 import { TextComposer } from './TextComposer';
+
+const SUGGESTED_PROMPTS = [
+  'Find code violations',
+  'Identify this part',
+  'Run a panel inspection',
+] as const;
 
 interface PhotoChatViewProps {
   onEnd: () => void;
@@ -13,11 +20,17 @@ interface PhotoChatViewProps {
   };
 }
 
+function formatContextCount(count: number): string {
+  return `${count} photo${count === 1 ? '' : 's'} in context`;
+}
+
 export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
   const chat = useGeminiPhotoChat({ client });
   const [isCaptureOpen, setIsCaptureOpen] = useState(false);
+  const [previewPhoto, setPreviewPhoto] = useState<CapturedPhoto | null>(null);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [draftText, setDraftText] = useState('');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleAddPhotos = (count: { added: number; rejected: number }) => {
@@ -25,10 +38,10 @@ export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
       window.alert(PHOTO_CHAT_LIMIT_MESSAGE);
     }
   };
+  const totalPhotoCount = chat.contextPhotos.length + chat.queuedPhotos.length;
 
   return (
     <div className="relative h-full flex flex-col bg-charcoal text-white">
-      {/* Header */}
       <div className="safe-top px-6 pt-6 pb-3 border-b border-white/[0.06] glass-elevated">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -44,90 +57,7 @@ export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
         </div>
       </div>
 
-      {/* Photo attachment tray */}
-      <div className="px-6 pt-3">
-        <div className="rounded-2xl glass p-3 space-y-2">
-          {/* Photo strip + add button */}
-          <div className="flex gap-2 items-center overflow-x-auto pb-1">
-            {chat.photos.map((photo, index) => (
-              <img
-                key={photo.id}
-                src={`data:image/jpeg;base64,${photo.base64}`}
-                alt={`Attached photo ${index + 1}`}
-                className="w-[68px] h-[68px] rounded-2xl object-cover border border-white/10 shrink-0"
-              />
-            ))}
-
-            {/* Skeleton placeholders while uploading */}
-            {isUploading && (
-              <>
-                <div className="w-[68px] h-[68px] rounded-2xl bg-white/[0.04] shrink-0 animate-shimmer" style={{ backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)', backgroundSize: '200% 100%' }} />
-                <div className="w-[68px] h-[68px] rounded-2xl bg-white/[0.04] shrink-0 animate-shimmer" style={{ backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)', backgroundSize: '200% 100%' }} />
-              </>
-            )}
-
-            {/* Add photo button */}
-            {chat.photos.length < MAX_PHOTO_CHAT_PHOTOS && !isUploading && (
-              <button
-                onClick={() => {
-                  setAttachmentError(null);
-                  setIsCaptureOpen(true);
-                }}
-                className="w-[68px] h-[68px] rounded-2xl border-2 border-dashed border-white/12 flex flex-col items-center justify-center gap-1 shrink-0 text-white/25 active:text-white/45 active:border-white/25 transition-colors"
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-                <span className="text-[9px] font-medium">Add</span>
-              </button>
-            )}
-          </div>
-
-          {/* Counter + upload link */}
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono font-medium text-white/30">
-              {chat.photos.length}/{MAX_PHOTO_CHAT_PHOTOS}
-            </span>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="text-[11px] text-amber-400 font-medium active:text-amber-300"
-            >
-              Upload from gallery
-            </button>
-          </div>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="sr-only"
-            aria-label="Upload Photos"
-            onChange={async (event) => {
-              const files = Array.from(event.target.files ?? []);
-              event.target.value = '';
-
-              if (files.length === 0) return;
-
-              setAttachmentError(null);
-              setIsUploading(true);
-
-              try {
-                const photos = await loadCapturedPhotosFromFiles(files);
-                handleAddPhotos(chat.addPhotos(photos));
-              } catch (err) {
-                setAttachmentError(err instanceof Error ? err.message : 'Unable to process uploaded photos.');
-              } finally {
-                setIsUploading(false);
-              }
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto chat-scroll px-6 py-4 space-y-2">
+      <div className="flex-1 overflow-y-auto chat-scroll px-6 py-4 space-y-3">
         {chat.messages.length === 0 && (
           <div className="flex flex-col items-center justify-center text-center py-12 px-6">
             <div className="w-14 h-14 rounded-2xl bg-white/[0.04] flex items-center justify-center mb-4">
@@ -154,7 +84,26 @@ export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
                   : 'glass text-white/90 rounded-bl-sm'
               }`}
             >
-              {message.text}
+              {message.photos && message.photos.length > 0 && (
+                <div className="mb-2 grid grid-cols-2 gap-2">
+                  {message.photos.map((photo, index) => (
+                    <button
+                      key={photo.id}
+                      type="button"
+                      aria-label={`Open photo ${index + 1}`}
+                      onClick={() => setPreviewPhoto(photo)}
+                      className="overflow-hidden rounded-2xl border border-white/10 bg-black/20"
+                    >
+                      <img
+                        src={`data:image/jpeg;base64,${photo.base64}`}
+                        alt={`Shared photo ${index + 1}`}
+                        className="w-28 h-28 object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+              <p>{message.text}</p>
               {message.error && (
                 <p className="text-xs text-danger mt-1">{message.error}</p>
               )}
@@ -163,7 +112,6 @@ export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
         ))}
       </div>
 
-      {/* Error banner */}
       {(attachmentError || chat.error) && (
         <div className="px-6 pb-2">
           <div className="rounded-xl bg-danger/15 border border-danger/30 px-3 py-2 text-xs flex items-center justify-between gap-3">
@@ -182,29 +130,112 @@ export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
         </div>
       )}
 
-      {/* Composer */}
-      <div className="safe-bottom px-6 pb-6">
+      <div className="safe-bottom px-6 pb-6 pt-2 border-t border-white/[0.06] bg-charcoal/95 backdrop-blur-sm space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[11px] text-white/35">
+            {formatContextCount(chat.contextPhotos.length)}
+          </span>
+          <div className="flex items-center gap-2">
+            {totalPhotoCount < MAX_PHOTO_CHAT_PHOTOS && (
+              <button
+                onClick={() => {
+                  setAttachmentError(null);
+                  setIsCaptureOpen(true);
+                }}
+                className="px-3 py-2 rounded-xl bg-white/[0.07] hover:bg-white/[0.12] text-sm text-white/80 transition-colors"
+              >
+                Add Photo
+              </button>
+            )}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="px-3 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-sm text-amber-300 transition-colors"
+            >
+              Upload from gallery
+            </button>
+          </div>
+        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="sr-only"
+          aria-label="Upload Photos"
+          onChange={async (event) => {
+            const files = Array.from(event.target.files ?? []);
+            event.target.value = '';
+
+            if (files.length === 0) return;
+
+            setAttachmentError(null);
+            setIsUploading(true);
+
+            try {
+              const photos = await loadCapturedPhotosFromFiles(files);
+              handleAddPhotos(chat.queuePhotos(photos));
+            } catch (err) {
+              setAttachmentError(err instanceof Error ? err.message : 'Unable to process uploaded photos.');
+            } finally {
+              setIsUploading(false);
+            }
+          }}
+        />
+
         <TextComposer
-          placeholder="Ask about your photos"
+          value={draftText}
+          onChange={setDraftText}
+          placeholder={isUploading ? 'Preparing photos…' : 'Ask about your photos'}
           submitLabel="Send"
-          isBusy={chat.state === 'sending'}
+          isBusy={chat.state === 'sending' || isUploading}
+          queuedPhotos={chat.queuedPhotos}
+          onRemoveQueuedPhoto={chat.removeQueuedPhoto}
+          suggestedPrompts={[...SUGGESTED_PROMPTS]}
+          onSelectSuggestedPrompt={(prompt) => setDraftText(prompt)}
           onSubmit={async (text) => {
+            setDraftText('');
             await chat.sendText(text);
           }}
         />
       </div>
 
-      {/* Photo capture overlay */}
       {isCaptureOpen && (
         <div className="absolute inset-0 z-20">
           <PhotoCaptureView
             onBack={() => setIsCaptureOpen(false)}
             onCapture={(photo) => {
               setAttachmentError(null);
-              handleAddPhotos(chat.addPhotos([photo]));
+              handleAddPhotos(chat.queuePhotos([photo]));
               setIsCaptureOpen(false);
             }}
           />
+        </div>
+      )}
+
+      {previewPhoto && (
+        <div
+          className="absolute inset-0 z-30 bg-black/90 backdrop-blur-sm flex flex-col"
+          role="dialog"
+          aria-label="Photo Preview"
+        >
+          <div className="safe-top p-4 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setPreviewPhoto(null)}
+              className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-sm text-white"
+              aria-label="Close photo preview"
+            >
+              Close
+            </button>
+          </div>
+          <div className="flex-1 px-6 pb-8 flex items-center justify-center">
+            <img
+              src={`data:image/jpeg;base64,${previewPhoto.base64}`}
+              alt="Full-screen photo preview"
+              className="max-h-full max-w-full object-contain rounded-3xl"
+            />
+          </div>
         </div>
       )}
     </div>

@@ -61,7 +61,7 @@ describe('photo flow persistence guardrails', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /photo chat/i }));
+    await user.click(screen.getByRole('button', { name: /ask about photos/i }));
 
     expect(screen.getByText('Photo Chat')).toBeInTheDocument();
     expect(callLogMocks.startCallLog).not.toHaveBeenCalled();
@@ -73,16 +73,16 @@ describe('photo flow persistence guardrails', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /photo chat/i }));
+    await user.click(screen.getByRole('button', { name: /ask about photos/i }));
     expect(screen.getByText('Local Photos: 0')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /mock add photo/i }));
     expect(screen.getByText('Local Photos: 1')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /end photo chat/i }));
-    expect(screen.getByRole('button', { name: /go live/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /live walkthrough/i })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /photo chat/i }));
+    await user.click(screen.getByRole('button', { name: /ask about photos/i }));
     expect(screen.getByText('Local Photos: 0')).toBeInTheDocument();
   });
 });

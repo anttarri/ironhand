@@ -45,7 +45,7 @@ afterEach(() => {
 });
 
 describe('PhotoChatView', () => {
-  it('renders empty-state attachment controls and omits live voice controls', () => {
+  it('renders empty-state chat controls and omits live voice controls', () => {
     render(
       <PhotoChatView
         onEnd={() => {}}
@@ -53,16 +53,80 @@ describe('PhotoChatView', () => {
       />,
     );
 
-    expect(screen.getByText(/add up to 5 photos/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /take photo/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /upload photos/i })).toBeInTheDocument();
+    expect(screen.getByText(/add photos and ask a question/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add photo/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /upload from gallery/i })).toBeInTheDocument();
+    expect(screen.getByText('0 photos in context')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Find code violations' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Identify this part' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Run a panel inspection' })).toBeInTheDocument();
 
     expect(screen.queryByRole('button', { name: /mute/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /turn camera/i })).not.toBeInTheDocument();
     expect(useAudioSpy).not.toHaveBeenCalled();
   });
 
-  it('uploads multiple photos, renders their count, and appends ai response', async () => {
+  it('prefills the composer when a suggested prompt is tapped and does not send immediately', async () => {
+    const user = userEvent.setup();
+    const sendTurn = vi.fn().mockResolvedValue({ text: 'ok' });
+
+    render(
+      <PhotoChatView
+        onEnd={() => {}}
+        client={{ sendTurn }}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Identify this part' }));
+
+    const composer = screen.getByPlaceholderText(/ask about your photos/i);
+    expect(composer).toHaveValue('Identify this part');
+    expect(sendTurn).not.toHaveBeenCalled();
+
+    await user.clear(composer);
+    expect(screen.getByRole('button', { name: 'Find code violations' })).toBeInTheDocument();
+  });
+
+  it('clears the composer immediately after send, before the request resolves', async () => {
+    const user = userEvent.setup();
+    const sendTurn = vi.fn(() => new Promise(() => {}));
+
+    render(
+      <PhotoChatView
+        onEnd={() => {}}
+        client={{ sendTurn }}
+      />,
+    );
+
+    const composer = screen.getByPlaceholderText(/ask about your photos/i);
+    await user.type(composer, 'What is my next step?');
+    await user.click(screen.getByRole('button', { name: /send/i }));
+
+    expect(sendTurn).toHaveBeenCalledTimes(1);
+    expect(composer).toHaveValue('');
+  });
+
+  it('keeps the composer cleared after a failed send and shows retry UI', async () => {
+    const user = userEvent.setup();
+    const sendTurn = vi.fn().mockRejectedValueOnce(new Error('temporary failure'));
+
+    render(
+      <PhotoChatView
+        onEnd={() => {}}
+        client={{ sendTurn }}
+      />,
+    );
+
+    const composer = screen.getByPlaceholderText(/ask about your photos/i);
+    await user.type(composer, 'Need help');
+    await user.click(screen.getByRole('button', { name: /send/i }));
+
+    expect(await screen.findByRole('button', { name: /retry/i })).toBeInTheDocument();
+    expect(composer).toHaveValue('');
+    expect(screen.getByText('Need help')).toBeInTheDocument();
+  });
+
+  it('uploads photos, shows context count, renders them inline in the user turn, and appends ai response', async () => {
     const user = userEvent.setup();
     const sendTurn = vi.fn().mockResolvedValue({ text: 'Start with verifying the breaker is off.' });
     loadPhotoFilesMock.mockResolvedValue([
@@ -84,8 +148,9 @@ describe('PhotoChatView', () => {
     ]);
 
     await waitFor(() => {
-      expect(screen.getByText('2 / 5 photos attached')).toBeInTheDocument();
+      expect(screen.getAllByRole('img', { name: /queued photo/i })).toHaveLength(2);
     });
+    expect(screen.getByText('0 photos in context')).toBeInTheDocument();
 
     await user.type(screen.getByPlaceholderText(/ask about your photos/i), 'What is my next step?');
     await user.click(screen.getByRole('button', { name: /send/i }));
@@ -94,56 +159,21 @@ describe('PhotoChatView', () => {
       images: ['abc123', 'def456'],
     }));
     expect(await screen.findByText('Start with verifying the breaker is off.')).toBeInTheDocument();
+    expect(screen.getByText('What is my next step?')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /open photo/i })).toHaveLength(2);
+    expect(screen.getByText('2 photos in context')).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /queued photo/i })).not.toBeInTheDocument();
   });
 
-  it('alerts when adding a sixth photo', async () => {
-    const user = userEvent.setup();
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-    loadPhotoFilesMock
-      .mockResolvedValueOnce([
-        { id: 'upload-1', base64: 'a', createdAt: 1700000000000, source: 'upload' },
-        { id: 'upload-2', base64: 'b', createdAt: 1700000000001, source: 'upload' },
-        { id: 'upload-3', base64: 'c', createdAt: 1700000000002, source: 'upload' },
-        { id: 'upload-4', base64: 'd', createdAt: 1700000000003, source: 'upload' },
-        { id: 'upload-5', base64: 'e', createdAt: 1700000000004, source: 'upload' },
-      ])
-      .mockResolvedValueOnce([
-        { id: 'upload-6', base64: 'f', createdAt: 1700000000005, source: 'upload' },
-      ]);
-
-    render(
-      <PhotoChatView
-        onEnd={() => {}}
-        client={{ sendTurn: vi.fn().mockResolvedValue({ text: 'ok' }) }}
-      />,
-    );
-
-    const input = screen.getByLabelText(/upload photos/i);
-    await user.upload(input, [
-      new File(['1'], 'one.png', { type: 'image/png' }),
-      new File(['2'], 'two.png', { type: 'image/png' }),
-      new File(['3'], 'three.png', { type: 'image/png' }),
-      new File(['4'], 'four.png', { type: 'image/png' }),
-      new File(['5'], 'five.png', { type: 'image/png' }),
-    ]);
-
-    await waitFor(() => {
-      expect(screen.getByText('5 / 5 photos attached')).toBeInTheDocument();
-    });
-
-    await user.upload(input, new File(['6'], 'six.png', { type: 'image/png' }));
-
-    expect(alertSpy).toHaveBeenCalledWith(
-      'You can only upload up to 5 photos in one chat. Start a new chat or use the livestream feature.',
-    );
-    expect(screen.getByText('5 / 5 photos attached')).toBeInTheDocument();
-  });
-
-  it('preserves prior messages when a user adds a captured photo later in the chat', async () => {
+  it('preserves earlier photo turns while later text-only and later photo turns keep full context', async () => {
     const user = userEvent.setup();
     const sendTurn = vi.fn()
       .mockResolvedValueOnce({ text: 'First response' })
-      .mockResolvedValueOnce({ text: 'Second response' });
+      .mockResolvedValueOnce({ text: 'Second response' })
+      .mockResolvedValueOnce({ text: 'Third response' });
+    loadPhotoFilesMock.mockResolvedValueOnce([
+      { id: 'upload-1', base64: 'upload-photo', createdAt: 1700000000000, source: 'upload' },
+    ]);
 
     render(
       <PhotoChatView
@@ -152,28 +182,128 @@ describe('PhotoChatView', () => {
       />,
     );
 
+    await user.upload(
+      screen.getByLabelText(/upload photos/i),
+      new File(['photo-1'], 'panel-1.png', { type: 'image/png' }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('img', { name: /queued photo 1/i })).toBeInTheDocument();
+    });
+    expect(screen.getByText('0 photos in context')).toBeInTheDocument();
+
     await user.type(screen.getByPlaceholderText(/ask about your photos/i), 'What do you see?');
     await user.click(screen.getByRole('button', { name: /send/i }));
     expect(await screen.findByText('First response')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /open photo/i })).toHaveLength(1);
+    expect(screen.getByText('1 photo in context')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /take photo/i }));
+    await user.type(screen.getByPlaceholderText(/ask about your photos/i), 'Anything else?');
+    await user.click(screen.getByRole('button', { name: /send/i }));
+    expect(await screen.findByText('Second response')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /open photo/i })).toHaveLength(1);
+
+    await user.click(screen.getByRole('button', { name: /add photo/i }));
     expect(screen.getByText('Photo Capture Mock')).toBeInTheDocument();
-
     await user.click(screen.getByRole('button', { name: /confirm captured photo/i }));
+
     expect(screen.queryByText('Photo Capture Mock')).not.toBeInTheDocument();
-    expect(screen.getByText('1 / 5 photos attached')).toBeInTheDocument();
-    expect(screen.getByText('First response')).toBeInTheDocument();
+    expect(screen.getByText('1 photo in context')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /queued photo 1/i })).toBeInTheDocument();
 
     await user.type(screen.getByPlaceholderText(/ask about your photos/i), 'And now?');
     await user.click(screen.getByRole('button', { name: /send/i }));
 
     expect(sendTurn).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      images: ['camera-photo'],
+      images: ['upload-photo'],
+    }));
+    expect(sendTurn).toHaveBeenNthCalledWith(3, expect.objectContaining({
+      images: ['upload-photo', 'camera-photo'],
       history: [
         { role: 'user', text: 'What do you see?' },
         { role: 'ai', text: 'First response' },
+        { role: 'user', text: 'Anything else?' },
+        { role: 'ai', text: 'Second response' },
       ],
     }));
-    expect(await screen.findByText('Second response')).toBeInTheDocument();
+    expect(await screen.findByText('Third response')).toBeInTheDocument();
+    expect(screen.getByText('What do you see?')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /open photo/i })).toHaveLength(2);
+    expect(screen.getByText('2 photos in context')).toBeInTheDocument();
+  });
+
+  it('opens an inline historical photo in a full-screen preview', async () => {
+    const user = userEvent.setup();
+    const sendTurn = vi.fn().mockResolvedValue({ text: 'Looks normal.' });
+    loadPhotoFilesMock.mockResolvedValueOnce([
+      { id: 'upload-1', base64: 'preview-photo', createdAt: 1700000000000, source: 'upload' },
+    ]);
+
+    render(
+      <PhotoChatView
+        onEnd={() => {}}
+        client={{ sendTurn }}
+      />,
+    );
+
+    await user.upload(
+      screen.getByLabelText(/upload photos/i),
+      new File(['photo-1'], 'panel-1.png', { type: 'image/png' }),
+    );
+
+    await user.type(screen.getByPlaceholderText(/ask about your photos/i), 'How does this look?');
+    await user.click(screen.getByRole('button', { name: /send/i }));
+    expect(await screen.findByText('Looks normal.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /open photo 1/i }));
+
+    expect(screen.getByRole('dialog', { name: /photo preview/i })).toBeInTheDocument();
+    expect(screen.getByAltText(/full-screen photo preview/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /remove photo/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /replace photo/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /close photo preview/i }));
+    expect(screen.queryByRole('dialog', { name: /photo preview/i })).not.toBeInTheDocument();
+    expect(screen.getByText('How does this look?')).toBeInTheDocument();
+  });
+
+  it('allows removing queued photos before send', async () => {
+    const user = userEvent.setup();
+    const sendTurn = vi.fn().mockResolvedValue({ text: 'Looks good.' });
+    loadPhotoFilesMock.mockResolvedValueOnce([
+      { id: 'upload-1', base64: 'preview-photo-1', createdAt: 1700000000000, source: 'upload' },
+      { id: 'upload-2', base64: 'preview-photo-2', createdAt: 1700000000001, source: 'upload' },
+    ]);
+
+    render(
+      <PhotoChatView
+        onEnd={() => {}}
+        client={{ sendTurn }}
+      />,
+    );
+
+    await user.upload(
+      screen.getByLabelText(/upload photos/i),
+      [
+        new File(['photo-1'], 'panel-1.png', { type: 'image/png' }),
+        new File(['photo-2'], 'panel-2.png', { type: 'image/png' }),
+      ],
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('img', { name: /queued photo/i })).toHaveLength(2);
+    });
+
+    await user.click(screen.getByRole('button', { name: /remove queued photo 2/i }));
+
+    expect(screen.getAllByRole('img', { name: /queued photo/i })).toHaveLength(1);
+
+    await user.type(screen.getByPlaceholderText(/ask about your photos/i), 'What now?');
+    await user.click(screen.getByRole('button', { name: /send/i }));
+
+    expect(sendTurn).toHaveBeenCalledWith(expect.objectContaining({
+      images: ['preview-photo-1'],
+    }));
+    expect(screen.getByText('1 photo in context')).toBeInTheDocument();
   });
 });

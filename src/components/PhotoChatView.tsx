@@ -6,6 +6,7 @@ import { useGeminiPhotoChat } from '@/hooks/useGeminiPhotoChat';
 import { loadCapturedPhotosFromFiles } from '@/services/photoUtils';
 import { PhotoCaptureView } from './PhotoCaptureView';
 import { TextComposer } from './TextComposer';
+import { AnalysisOverlay } from './AnalysisOverlay';
 
 const SUGGESTED_PROMPTS = [
   'Find code violations',
@@ -39,6 +40,16 @@ export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
     }
   };
   const totalPhotoCount = chat.contextPhotos.length + chat.queuedPhotos.length;
+  const isTrueEmptyState = chat.messages.length === 0 && totalPhotoCount === 0;
+
+  const openPhotoCapture = () => {
+    setAttachmentError(null);
+    setIsCaptureOpen(true);
+  };
+
+  const openGalleryPicker = () => {
+    fileInputRef.current?.click();
+  };
 
   return (
     <div className="relative h-full flex flex-col bg-charcoal text-white">
@@ -57,18 +68,41 @@ export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto chat-scroll px-6 py-4 space-y-3">
-        {chat.messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center text-center py-12 px-6">
-            <div className="w-14 h-14 rounded-2xl bg-white/[0.04] flex items-center justify-center mb-4">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500/40">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <path d="M21 15l-5-5L5 21" />
-              </svg>
+      <div className="relative flex-1 overflow-y-auto chat-scroll px-6 py-4 space-y-3">
+        <AnalysisOverlay isActive={chat.state === 'sending'} />
+
+        {isTrueEmptyState && (
+          <div className="flex min-h-full items-center justify-center px-2 py-8">
+            <div className="flex w-full max-w-sm flex-col items-center text-center">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.04]">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500/40">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="M21 15l-5-5L5 21" />
+                </svg>
+              </div>
+              <p className="mb-1 text-sm text-white/50">Add photos and ask a question</p>
+              <p className="text-[11px] text-white/25">Up to {MAX_PHOTO_CHAT_PHOTOS} photos per session</p>
+              <div className="mt-6 grid w-full grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={openPhotoCapture}
+                  className="min-h-[72px] rounded-2xl bg-white/[0.09] px-4 py-3 text-sm font-medium text-white/85 transition-colors hover:bg-white/[0.14]"
+                >
+                  Add Photo
+                </button>
+                <button
+                  type="button"
+                  onClick={openGalleryPicker}
+                  className="min-h-[72px] rounded-2xl bg-white/[0.06] px-4 py-3 text-sm font-medium text-amber-300 transition-colors hover:bg-white/[0.1]"
+                >
+                  Upload from gallery
+                </button>
+              </div>
+              <p className="mt-4 text-[11px] text-white/35">
+                {formatContextCount(chat.contextPhotos.length)}
+              </p>
             </div>
-            <p className="text-sm text-white/50 mb-1">Add photos and ask a question</p>
-            <p className="text-[11px] text-white/25">Up to {MAX_PHOTO_CHAT_PHOTOS} photos per session</p>
           </div>
         )}
 
@@ -131,30 +165,31 @@ export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
       )}
 
       <div className="safe-bottom px-6 pb-6 pt-2 border-t border-white/[0.06] bg-charcoal/95 backdrop-blur-sm space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[11px] text-white/35">
-            {formatContextCount(chat.contextPhotos.length)}
-          </span>
-          <div className="flex items-center gap-2">
-            {totalPhotoCount < MAX_PHOTO_CHAT_PHOTOS && (
+        {!isTrueEmptyState && (
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[11px] text-white/35">
+              {formatContextCount(chat.contextPhotos.length)}
+            </span>
+            <div className="flex items-center gap-2">
+              {totalPhotoCount < MAX_PHOTO_CHAT_PHOTOS && (
+                <button
+                  type="button"
+                  onClick={openPhotoCapture}
+                  className="px-3 py-2 rounded-xl bg-white/[0.07] hover:bg-white/[0.12] text-sm text-white/80 transition-colors"
+                >
+                  Add Photo
+                </button>
+              )}
               <button
-                onClick={() => {
-                  setAttachmentError(null);
-                  setIsCaptureOpen(true);
-                }}
-                className="px-3 py-2 rounded-xl bg-white/[0.07] hover:bg-white/[0.12] text-sm text-white/80 transition-colors"
+                type="button"
+                onClick={openGalleryPicker}
+                className="px-3 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-sm text-amber-300 transition-colors"
               >
-                Add Photo
+                Upload from gallery
               </button>
-            )}
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="px-3 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-sm text-amber-300 transition-colors"
-            >
-              Upload from gallery
-            </button>
+            </div>
           </div>
-        </div>
+        )}
 
         <input
           ref={fileInputRef}

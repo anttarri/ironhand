@@ -9,6 +9,7 @@ import { ChatOverlay } from './ChatOverlay';
 import { ControlBar } from './ControlBar';
 import { StatusIndicator } from './StatusIndicator';
 import { TextComposer } from './TextComposer';
+import { AnalysisOverlay } from './AnalysisOverlay';
 
 type VideoMode = 'live' | 'photo';
 
@@ -29,6 +30,8 @@ export function SessionView({ onEnd }: SessionViewProps) {
   const [photoFlash, setPhotoFlash] = useState(false);
   const [lastPhotoThumb, setLastPhotoThumb] = useState<string | null>(null);
   const [textDraft, setTextDraft] = useState('');
+  const [isScanning, setIsScanning] = useState(false);
+  const messageCountAtScanRef = useRef(0);
 
   const audio = useAudio({
     onAudioChunk: gemini.sendAudio,
@@ -134,6 +137,13 @@ export function SessionView({ onEnd }: SessionViewProps) {
     prevStateRef.current = gemini.state;
   }, [gemini.state, audio, camera, videoMode]);
 
+  // Dismiss scanning overlay when AI responds
+  useEffect(() => {
+    if (isScanning && gemini.messages.length > messageCountAtScanRef.current) {
+      setIsScanning(false);
+    }
+  }, [isScanning, gemini.messages]);
+
   const handleSelectVideoMode = useCallback((nextMode: VideoMode) => {
     if (nextMode === videoMode) return;
 
@@ -154,6 +164,8 @@ export function SessionView({ onEnd }: SessionViewProps) {
       setLastPhotoThumb(frame);
       setPhotoFlash(true);
       setTimeout(() => setPhotoFlash(false), 150);
+      messageCountAtScanRef.current = gemini.messages.length;
+      setIsScanning(true);
     }
   }, [camera, gemini]);
 
@@ -181,6 +193,9 @@ export function SessionView({ onEnd }: SessionViewProps) {
       {photoFlash && (
         <div className="absolute inset-0 bg-white/70 z-20 pointer-events-none animate-flash" />
       )}
+
+      {/* Analysis overlay */}
+      <AnalysisOverlay isActive={isScanning} />
 
       {/* Status indicator - top left */}
       <div className="absolute top-4 left-4 safe-top z-10">

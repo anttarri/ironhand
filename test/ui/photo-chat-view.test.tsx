@@ -285,6 +285,46 @@ describe('PhotoChatView', () => {
     expect(screen.getByText('How does this look?')).toBeInTheDocument();
   });
 
+  it('shows analysis overlay while sending', async () => {
+    const user = userEvent.setup();
+    const sendTurn = vi.fn(() => new Promise(() => {}));
+
+    render(
+      <PhotoChatView
+        onEnd={() => {}}
+        client={{ sendTurn }}
+      />,
+    );
+
+    const composer = screen.getByPlaceholderText(/ask about your photos/i);
+    await user.type(composer, 'Check this panel');
+    await user.click(screen.getByRole('button', { name: /send/i }));
+
+    expect(screen.getByTestId('analysis-overlay')).toBeInTheDocument();
+  });
+
+  it('hides analysis overlay after response arrives', async () => {
+    const user = userEvent.setup();
+    const sendTurn = vi.fn().mockResolvedValue({ text: 'All clear.' });
+
+    render(
+      <PhotoChatView
+        onEnd={() => {}}
+        client={{ sendTurn }}
+      />,
+    );
+
+    const composer = screen.getByPlaceholderText(/ask about your photos/i);
+    await user.type(composer, 'Check this panel');
+    await user.click(screen.getByRole('button', { name: /send/i }));
+
+    await screen.findByText('All clear.');
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('analysis-overlay')).not.toBeInTheDocument();
+    });
+  });
+
   it('allows removing queued photos before send', async () => {
     const user = userEvent.setup();
     const sendTurn = vi.fn().mockResolvedValue({ text: 'Looks good.' });

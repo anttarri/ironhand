@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 const mocks = vi.hoisted(() => ({
@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   startCallLog: vi.fn(() => ({ id: 'call-1' })),
   updateCallLogMessages: vi.fn(),
   finalizeCallLog: vi.fn(),
+  messages: [] as Array<{ id: string; role: string; text: string }>,
 }));
 
 import { SessionView } from '../../src/components/SessionView';
@@ -31,7 +32,7 @@ import { SessionView } from '../../src/components/SessionView';
 vi.mock('../../src/hooks/useGeminiLive', () => ({
   useGeminiLive: () => ({
     state: 'active',
-    messages: [],
+    messages: mocks.messages,
     error: null,
     connect: mocks.connect,
     disconnect: mocks.disconnect,
@@ -93,6 +94,7 @@ describe('SessionView lifecycle', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    mocks.messages = [];
   });
 
   it('defaults to live video mode', () => {
@@ -176,6 +178,40 @@ describe('SessionView lifecycle', () => {
 
     expect(mocks.toggleTorch).toHaveBeenCalledTimes(1);
     expect(mocks.disconnect).not.toHaveBeenCalled();
+  });
+
+  it('shows analysis overlay after photo capture in photo mode', async () => {
+    const user = userEvent.setup();
+    render(<SessionView onEnd={() => {}} />);
+
+    await user.click(screen.getByRole('button', { name: 'Photo' }));
+    await user.click(screen.getByRole('button', { name: /take photo/i }));
+
+    expect(screen.getByTestId('analysis-overlay')).toBeInTheDocument();
+  });
+
+  it('hides analysis overlay when AI responds', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const { rerender } = render(<SessionView onEnd={() => {}} />);
+
+    await user.click(screen.getByRole('button', { name: 'Photo' }));
+    await user.click(screen.getByRole('button', { name: /take photo/i }));
+
+    expect(screen.getByTestId('analysis-overlay')).toBeInTheDocument();
+
+    // Simulate AI response by updating messages
+    mocks.messages = [{ id: '1', role: 'ai', text: 'I see a panel' }];
+    rerender(<SessionView onEnd={() => {}} />);
+
+    // Advance past the resolve phase (400ms)
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+
+    expect(screen.queryByTestId('analysis-overlay')).not.toBeInTheDocument();
+
+    vi.useRealTimers();
   });
 
   it('end session tears down resources and exits', async () => {

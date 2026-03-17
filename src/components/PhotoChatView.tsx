@@ -6,6 +6,7 @@ import { useGeminiPhotoChat } from '@/hooks/useGeminiPhotoChat';
 import { loadCapturedPhotosFromFiles } from '@/services/photoUtils';
 import { PhotoCaptureView } from './PhotoCaptureView';
 import { TextComposer } from './TextComposer';
+import { AnalysisOverlay } from './AnalysisOverlay';
 
 const SUGGESTED_PROMPTS = [
   'Find code violations',
@@ -67,7 +68,9 @@ export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto chat-scroll px-6 py-4 space-y-3">
+      <div className="relative flex-1 overflow-y-auto chat-scroll px-6 py-4 space-y-3">
+        <AnalysisOverlay isActive={chat.state === 'sending'} />
+
         {isTrueEmptyState && (
           <div className="flex min-h-full items-center justify-center px-2 py-8">
             <div className="flex w-full max-w-sm flex-col items-center text-center">

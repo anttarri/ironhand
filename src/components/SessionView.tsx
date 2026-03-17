@@ -32,6 +32,9 @@ export function SessionView({ onEnd }: SessionViewProps) {
   const [textDraft, setTextDraft] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const messageCountAtScanRef = useRef(0);
+  const statusLabelOverride = gemini.state === 'active' && videoMode === 'photo'
+    ? 'Audio Live'
+    : undefined;
 
   const audio = useAudio({
     onAudioChunk: gemini.sendAudio,
@@ -199,7 +202,11 @@ export function SessionView({ onEnd }: SessionViewProps) {
 
       {/* Status indicator - top left */}
       <div className="absolute top-4 left-4 safe-top z-10">
-        <StatusIndicator state={gemini.state} error={gemini.error} />
+        <StatusIndicator
+          state={gemini.state}
+          error={gemini.error}
+          labelOverride={statusLabelOverride}
+        />
       </div>
 
       {/* Last photo thumbnail - shown in photo mode */}

@@ -119,6 +119,9 @@ describe('PhotoChatView', () => {
 
     expect(sendTurn).toHaveBeenCalledTimes(1);
     expect(composer).toHaveValue('');
+    expect(screen.queryByRole('button', { name: 'Find code violations' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Identify this part' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Run a panel inspection' })).not.toBeInTheDocument();
   });
 
   it('keeps the composer cleared after a failed send and shows retry UI', async () => {
@@ -139,6 +142,9 @@ describe('PhotoChatView', () => {
     expect(await screen.findByRole('button', { name: /retry/i })).toBeInTheDocument();
     expect(composer).toHaveValue('');
     expect(screen.getByText('Need help')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Find code violations' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Identify this part' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Run a panel inspection' })).not.toBeInTheDocument();
   });
 
   it('uploads photos, shows context count, renders them inline in the user turn, and appends ai response', async () => {

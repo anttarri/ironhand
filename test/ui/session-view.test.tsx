@@ -115,6 +115,7 @@ describe('SessionView lifecycle', () => {
     expect(mocks.disconnect).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Photo' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: /take photo/i })).toBeInTheDocument();
+    expect(screen.getByText('Audio Live')).toBeInTheDocument();
   });
 
   it('shutter captures and sends photo', async () => {

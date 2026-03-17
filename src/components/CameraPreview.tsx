@@ -23,7 +23,7 @@ export function CameraPreview({ videoRef, isActive, videoMode }: CameraPreviewPr
         </div>
       )}
       {isActive && videoMode === 'photo' && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
+        <div className="absolute left-1/2 top-[calc(env(safe-area-inset-top,0px)+3.5rem)] z-10 -translate-x-1/2 sm:top-4">
           <div className="bg-amber-500 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-bold text-charcoal uppercase tracking-wider flex items-center gap-2">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="6" width="20" height="14" rx="2" />

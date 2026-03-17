@@ -33,6 +33,7 @@ export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [draftText, setDraftText] = useState('');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const hasSentFirstUserTurn = chat.messages.some((message) => message.role === 'user');
 
   const handleAddPhotos = (count: { added: number; rejected: number }) => {
     if (count.rejected > 0) {
@@ -87,9 +88,24 @@ export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
                 <button
                   type="button"
                   onClick={openPhotoCapture}
-                  className="min-h-[72px] rounded-2xl bg-white/[0.09] px-4 py-3 text-sm font-medium text-white/85 transition-colors hover:bg-white/[0.14]"
+                  className="flex min-h-[72px] flex-col items-center justify-between rounded-2xl bg-white/[0.09] px-4 py-3 text-sm font-medium text-white/85 transition-colors hover:bg-white/[0.14]"
                 >
-                  Add Photo
+                  <span>Add Photo</span>
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-amber-300"
+                    aria-hidden="true"
+                  >
+                    <path d="M4 7h4l2-2h4l2 2h4a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z" />
+                    <circle cx="12" cy="13" r="3.5" />
+                  </svg>
                 </button>
                 <button
                   type="button"
@@ -226,7 +242,7 @@ export function PhotoChatView({ onEnd, client }: PhotoChatViewProps) {
           isBusy={chat.state === 'sending' || isUploading}
           queuedPhotos={chat.queuedPhotos}
           onRemoveQueuedPhoto={chat.removeQueuedPhoto}
-          suggestedPrompts={[...SUGGESTED_PROMPTS]}
+          suggestedPrompts={hasSentFirstUserTurn ? [] : [...SUGGESTED_PROMPTS]}
           onSelectSuggestedPrompt={(prompt) => setDraftText(prompt)}
           onSubmit={async (text) => {
             setDraftText('');

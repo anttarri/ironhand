@@ -42,6 +42,15 @@ describe('ControlBar video mode', () => {
     expect(screen.getByText('Take Photo')).toBeInTheDocument();
   });
 
+  it('keeps photo mode actions available when torch is enabled', () => {
+    render(<ControlBar {...defaultProps} videoMode="photo" isTorchAvailable />);
+
+    expect(screen.getByRole('button', { name: /take photo/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /turn flashlight on/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /mute microphone/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /end session/i })).toBeInTheDocument();
+  });
+
   it('marks live as the active segment in live mode', () => {
     render(<ControlBar {...defaultProps} videoMode="live" />);
 

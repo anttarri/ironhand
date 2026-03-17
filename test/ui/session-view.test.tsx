@@ -98,21 +98,20 @@ describe('SessionView lifecycle', () => {
   it('defaults to live video mode', () => {
     render(<SessionView onEnd={() => {}} />);
 
-    // Camera button should offer to switch to photo mode (meaning we're in live mode)
-    expect(screen.getByRole('button', { name: /switch to photo mode/i })).toBeInTheDocument();
-    // Shutter button should not be visible in live mode
+    expect(screen.getByRole('button', { name: 'Live' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Photo' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.queryByRole('button', { name: /take photo/i })).not.toBeInTheDocument();
   });
 
-  it('toggles to photo mode and stops streaming', async () => {
+  it('selects photo mode and stops streaming', async () => {
     const user = userEvent.setup();
     render(<SessionView onEnd={() => {}} />);
 
-    await user.click(screen.getByRole('button', { name: /switch to photo mode/i }));
+    await user.click(screen.getByRole('button', { name: 'Photo' }));
 
     expect(mocks.stopStreaming).toHaveBeenCalled();
     expect(mocks.disconnect).not.toHaveBeenCalled();
-    // Shutter button should now be visible
+    expect(screen.getByRole('button', { name: 'Photo' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: /take photo/i })).toBeInTheDocument();
   });
 
@@ -120,26 +119,23 @@ describe('SessionView lifecycle', () => {
     const user = userEvent.setup();
     render(<SessionView onEnd={() => {}} />);
 
-    // Switch to photo mode first
-    await user.click(screen.getByRole('button', { name: /switch to photo mode/i }));
-    // Click the shutter
+    await user.click(screen.getByRole('button', { name: 'Photo' }));
     await user.click(screen.getByRole('button', { name: /take photo/i }));
 
     expect(mocks.capturePhoto).toHaveBeenCalledTimes(1);
     expect(mocks.sendVideo).toHaveBeenCalledWith('captured-photo-base64');
   });
 
-  it('toggles back to live mode and resumes streaming', async () => {
+  it('selects live mode and resumes streaming', async () => {
     const user = userEvent.setup();
     render(<SessionView onEnd={() => {}} />);
 
-    // Toggle to photo mode
-    await user.click(screen.getByRole('button', { name: /switch to photo mode/i }));
+    await user.click(screen.getByRole('button', { name: 'Photo' }));
     mocks.startStreaming.mockClear();
-    // Toggle back to live mode
-    await user.click(screen.getByRole('button', { name: /switch to live video/i }));
+    await user.click(screen.getByRole('button', { name: 'Live' }));
 
     expect(mocks.startStreaming).toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Live' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('button', { name: /take photo/i })).not.toBeInTheDocument();
   });
 
@@ -147,10 +143,29 @@ describe('SessionView lifecycle', () => {
     const user = userEvent.setup();
     render(<SessionView onEnd={() => {}} />);
 
-    await user.click(screen.getByRole('button', { name: /switch to photo mode/i }));
+    await user.click(screen.getByRole('button', { name: 'Photo' }));
 
     expect(mocks.cleanupAudio).not.toHaveBeenCalled();
     expect(mocks.disconnect).not.toHaveBeenCalled();
+  });
+
+  it('reselecting the current mode is a no-op', async () => {
+    const user = userEvent.setup();
+    render(<SessionView onEnd={() => {}} />);
+
+    mocks.startStreaming.mockClear();
+    mocks.stopStreaming.mockClear();
+    await user.click(screen.getByRole('button', { name: 'Live' }));
+
+    expect(mocks.startStreaming).not.toHaveBeenCalled();
+    expect(mocks.stopStreaming).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Photo' }));
+    mocks.stopStreaming.mockClear();
+
+    await user.click(screen.getByRole('button', { name: 'Photo' }));
+
+    expect(mocks.stopStreaming).not.toHaveBeenCalled();
   });
 
   it('flashlight toggle works without ending session', async () => {

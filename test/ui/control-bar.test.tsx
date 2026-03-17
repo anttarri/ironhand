@@ -14,7 +14,7 @@ const defaultProps = {
   isAiSpeaking: false,
   onToggleMute: vi.fn(),
   onEndSession: vi.fn(),
-  onToggleVideoMode: vi.fn(),
+  onSelectVideoMode: vi.fn(),
   onCapturePhoto: vi.fn(),
   onToggleTorch: vi.fn(),
 };
@@ -25,22 +25,35 @@ afterEach(() => {
 });
 
 describe('ControlBar video mode', () => {
+  it('renders both visible mode segments', () => {
+    render(<ControlBar {...defaultProps} videoMode="live" />);
+
+    expect(screen.getByRole('button', { name: 'Live' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Photo' })).toBeInTheDocument();
+    expect(screen.getByText('Mode')).toBeInTheDocument();
+  });
+
   it('renders shutter button only in photo mode', () => {
     const { rerender } = render(<ControlBar {...defaultProps} videoMode="live" />);
     expect(screen.queryByRole('button', { name: /take photo/i })).not.toBeInTheDocument();
 
     rerender(<ControlBar {...defaultProps} videoMode="photo" />);
     expect(screen.getByRole('button', { name: /take photo/i })).toBeInTheDocument();
+    expect(screen.getByText('Take Photo')).toBeInTheDocument();
   });
 
-  it('camera button shows "Live" label in live mode', () => {
+  it('marks live as the active segment in live mode', () => {
     render(<ControlBar {...defaultProps} videoMode="live" />);
-    expect(screen.getByText('Live')).toBeInTheDocument();
+
+    expect(screen.getByRole('button', { name: 'Live' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Photo' })).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('camera button shows "Photo" label in photo mode', () => {
+  it('marks photo as the active segment in photo mode', () => {
     render(<ControlBar {...defaultProps} videoMode="photo" />);
-    expect(screen.getByText('Photo')).toBeInTheDocument();
+
+    expect(screen.getByRole('button', { name: 'Live' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Photo' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('calls onCapturePhoto when shutter clicked', async () => {
@@ -52,12 +65,21 @@ describe('ControlBar video mode', () => {
     expect(onCapturePhoto).toHaveBeenCalledTimes(1);
   });
 
-  it('calls onToggleVideoMode when camera button clicked', async () => {
-    const onToggleVideoMode = vi.fn();
+  it('calls onSelectVideoMode with photo when photo clicked', async () => {
+    const onSelectVideoMode = vi.fn();
     const user = userEvent.setup();
-    render(<ControlBar {...defaultProps} onToggleVideoMode={onToggleVideoMode} />);
+    render(<ControlBar {...defaultProps} onSelectVideoMode={onSelectVideoMode} />);
 
-    await user.click(screen.getByRole('button', { name: /switch to photo mode/i }));
-    expect(onToggleVideoMode).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole('button', { name: 'Photo' }));
+    expect(onSelectVideoMode).toHaveBeenCalledWith('photo');
+  });
+
+  it('calls onSelectVideoMode with live when live clicked', async () => {
+    const onSelectVideoMode = vi.fn();
+    const user = userEvent.setup();
+    render(<ControlBar {...defaultProps} videoMode="photo" onSelectVideoMode={onSelectVideoMode} />);
+
+    await user.click(screen.getByRole('button', { name: 'Live' }));
+    expect(onSelectVideoMode).toHaveBeenCalledWith('live');
   });
 });

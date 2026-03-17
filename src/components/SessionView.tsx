@@ -134,8 +134,10 @@ export function SessionView({ onEnd }: SessionViewProps) {
     prevStateRef.current = gemini.state;
   }, [gemini.state, audio, camera, videoMode]);
 
-  const handleToggleVideoMode = useCallback(() => {
-    if (videoMode === 'live') {
+  const handleSelectVideoMode = useCallback((nextMode: VideoMode) => {
+    if (nextMode === videoMode) return;
+
+    if (nextMode === 'photo') {
       camera.stopStreaming();
       setVideoMode('photo');
     } else {
@@ -227,7 +229,7 @@ export function SessionView({ onEnd }: SessionViewProps) {
         isAiSpeaking={audio.isAiSpeaking}
         onToggleMute={audio.toggleMute}
         onEndSession={handleEnd}
-        onToggleVideoMode={handleToggleVideoMode}
+        onSelectVideoMode={handleSelectVideoMode}
         onCapturePhoto={handleCaptureAndSend}
         onToggleTorch={() => {
           void camera.toggleTorch();

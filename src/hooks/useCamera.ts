@@ -13,11 +13,32 @@ export function useCamera({ onFrame }: UseCameraOptions = {}) {
   const [isActive, setIsActive] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [facingMode, setFacingMode] = useState<FacingMode>('environment');
+  const [isTorchAvailable, setIsTorchAvailable] = useState(false);
+  const [isTorchOn, setIsTorchOn] = useState(false);
 
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<number | null>(null);
   const onFrameRef = useRef(onFrame);
   onFrameRef.current = onFrame;
+
+  const getVideoTrack = useCallback((): MediaStreamTrack | null => {
+    return streamRef.current?.getVideoTracks?.()[0] ?? null;
+  }, []);
+
+  const detectTorchSupport = useCallback((track: MediaStreamTrack | null) => {
+    if (!track || typeof track.getCapabilities !== 'function') {
+      setIsTorchAvailable(false);
+      setIsTorchOn(false);
+      return;
+    }
+
+    const capabilities = track.getCapabilities() as MediaTrackCapabilities & { torch?: boolean };
+    const supported = capabilities.torch === true;
+    setIsTorchAvailable(supported);
+    if (!supported) {
+      setIsTorchOn(false);
+    }
+  }, []);
 
   const startCamera = useCallback(async (facing: FacingMode = 'environment') => {
     // Stop existing stream first
@@ -36,6 +57,8 @@ export function useCamera({ onFrame }: UseCameraOptions = {}) {
 
     streamRef.current = stream;
     setFacingMode(facing);
+    detectTorchSupport(stream.getVideoTracks()[0] ?? null);
+    setIsTorchOn(false);
 
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
@@ -62,6 +85,8 @@ export function useCamera({ onFrame }: UseCameraOptions = {}) {
     }
 
     setIsActive(false);
+    setIsTorchAvailable(false);
+    setIsTorchOn(false);
   }, []);
 
   const startStreaming = useCallback(() => {
@@ -98,12 +123,34 @@ export function useCamera({ onFrame }: UseCameraOptions = {}) {
         videoRef.current.srcObject = null;
       }
       setIsActive(false);
+      setIsTorchAvailable(false);
+      setIsTorchOn(false);
     } else {
       // Turn camera back on — re-acquire with the same facing mode
       await startCamera(facingMode);
       startStreaming();
     }
   }, [isActive, facingMode, startCamera, startStreaming, stopStreaming]);
+
+  const toggleTorch = useCallback(async () => {
+    const track = getVideoTrack();
+    if (!track || typeof track.applyConstraints !== 'function') return;
+
+    const next = !isTorchOn;
+    try {
+      await track.applyConstraints({
+        advanced: [{ torch: next } as MediaTrackConstraintSet],
+      });
+      setIsTorchOn(next);
+    } catch {
+      // Ignore unsupported/failed torch requests.
+    }
+  }, [getVideoTrack, isTorchOn]);
+
+  const capturePhoto = useCallback((): string | null => {
+    if (!videoRef.current) return null;
+    return captureFrame(videoRef.current, CAMERA_FRAME_MAX_WIDTH, CAMERA_FRAME_QUALITY);
+  }, []);
 
   // Pause frame capture when page hidden
   useEffect(() => {
@@ -144,5 +191,9 @@ export function useCamera({ onFrame }: UseCameraOptions = {}) {
     startStreaming,
     stopStreaming,
     toggleCamera,
+    capturePhoto,
+    isTorchAvailable,
+    isTorchOn,
+    toggleTorch,
   };
 }

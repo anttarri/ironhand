@@ -1,5 +1,30 @@
 export type SessionState = 'idle' | 'connecting' | 'active' | 'error';
 
+export type AppScreen =
+  | 'start'
+  | 'live-session'
+  | 'photo-chat'
+  | 'history'
+  | 'call-detail';
+
+export interface CapturedPhoto {
+  id: string;
+  base64: string;
+  createdAt: number;
+  source: 'camera' | 'upload';
+}
+
+export interface PhotoChatMessage {
+  id: string;
+  role: 'user' | 'ai' | 'system';
+  text: string;
+  timestamp: number;
+  photos?: CapturedPhoto[];
+  error?: string;
+}
+
+export type PhotoChatState = 'idle' | 'sending' | 'error';
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'ai' | 'system';
@@ -7,12 +32,40 @@ export interface ChatMessage {
   timestamp: number;
 }
 
-export interface SavedSession {
+export type CallLogStatus = 'active' | 'completed' | 'interrupted';
+
+export interface CallLogMessage {
   id: string;
+  role: ChatMessage['role'];
+  text: string;
+  timestamp: number;
+}
+
+export interface CallLog {
+  id: string;
+  title: string;
+  titleUpdatedAt?: number;
   startedAt: number;
-  endedAt: number;
-  messages: ChatMessage[];
+  endedAt?: number;
+  durationSec?: number;
+  status: CallLogStatus;
+  messages: CallLogMessage[];
   messageCount: number;
+  preview: string;
+  updatedAt: number;
+}
+
+export interface CallLogMeta {
+  id: string;
+  title: string;
+  titleUpdatedAt?: number;
+  startedAt: number;
+  endedAt?: number;
+  durationSec?: number;
+  status: CallLogStatus;
+  messageCount: number;
+  preview: string;
+  updatedAt: number;
 }
 
 export interface GeminiSetupMessage {

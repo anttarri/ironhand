@@ -8,8 +8,8 @@ Real-time AI electrician assistant. Streams live camera video and two-way voice 
 npm install
 
 # Add your Gemini API key
-cp .env.example .env
-# Edit .env: VITE_GEMINI_API_KEY=your_key_here
+cp .env.example .env.local
+# Edit .env.local: GEMINI_KEY=your_key_here
 ```
 
 Get an API key at [Google AI Studio](https://aistudio.google.com/apikey).
@@ -18,6 +18,12 @@ Get an API key at [Google AI Studio](https://aistudio.google.com/apikey).
 
 ```bash
 npm run dev
+```
+
+To run with the Vercel function layer (`/api/*`) locally:
+
+```bash
+npm run dev:vercel
 ```
 
 ## Testing on Mobile
@@ -52,6 +58,8 @@ npm run build
 npm run preview
 ```
 
+hey this is a test
+
 The `dist/` folder can be deployed to Vercel, Netlify, or any static host.
 
 ## Architecture
@@ -61,3 +69,5 @@ The `dist/` folder can be deployed to Vercel, Netlify, or any static host.
 - **Camera**: 1 FPS JPEG frames streamed to Gemini
 - **Audio**: 16kHz PCM mic input, 24kHz PCM playback from Gemini
 - **Transcription**: Built-in input/output audio transcription for chat overlay
+
+test

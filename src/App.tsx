@@ -1,60 +1,67 @@
 import { useState } from 'react';
+import { CallDetailView } from '@/components/CallDetailView';
+import { CallHistoryView } from '@/components/CallHistoryView';
+import { PhotoChatView } from '@/components/PhotoChatView';
 import { StartScreen } from '@/components/StartScreen';
 import { SessionView } from '@/components/SessionView';
-import { HistoryList } from '@/components/HistoryList';
-import { HistoryDetail } from '@/components/HistoryDetail';
-import { saveSession } from '@/services/sessionStorage';
-import type { ChatMessage, SavedSession } from '@/types';
-
-type Screen = 'start' | 'session' | 'history' | 'history-detail';
+import type { AppScreen } from '@/types';
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('start');
-  const [viewingSessionId, setViewingSessionId] = useState<string | null>(null);
+  const [screen, setScreen] = useState<AppScreen>('start');
+  const [activeCallId, setActiveCallId] = useState<string | null>(null);
 
-  const handleStart = () => {
-    setScreen('session');
+  const handleStartLive = () => {
+    setScreen('live-session');
   };
 
-  const handleEnd = (messages: ChatMessage[]) => {
-    const hasContent = messages.some((m) => m.role !== 'system');
-    if (hasContent) {
-      const session: SavedSession = {
-        id: `session-${Date.now()}`,
-        startedAt: messages[0].timestamp,
-        endedAt: Date.now(),
-        messages,
-        messageCount: messages.length,
-      };
-      saveSession(session);
-    }
+  const handleStartPhoto = () => {
+    setScreen('photo-chat');
+  };
+
+  const handleEnd = () => {
     setScreen('start');
+  };
+
+  const handleOpenHistory = () => {
+    setScreen('history');
+  };
+
+  const handleOpenCallDetail = (callId: string) => {
+    setActiveCallId(callId);
+    setScreen('call-detail');
+  };
+
+  const handleBackToHistory = () => {
+    setScreen('history');
   };
 
   return (
     <div className="h-full">
       {screen === 'start' && (
         <StartScreen
-          onStart={handleStart}
-          onOpenHistory={() => setScreen('history')}
+          onStartLive={handleStartLive}
+          onStartPhoto={handleStartPhoto}
+          onOpenHistory={handleOpenHistory}
         />
       )}
-      {screen === 'session' && (
-        <SessionView onEnd={handleEnd} />
+      {screen === 'live-session' && <SessionView onEnd={handleEnd} />}
+      {screen === 'photo-chat' && (
+        <PhotoChatView
+          onEnd={handleEnd}
+        />
       )}
       {screen === 'history' && (
-        <HistoryList
+        <CallHistoryView
           onBack={() => setScreen('start')}
-          onSelectSession={(id) => {
-            setViewingSessionId(id);
-            setScreen('history-detail');
-          }}
+          onOpenCall={handleOpenCallDetail}
+          onStartSession={handleStartLive}
         />
       )}
-      {screen === 'history-detail' && viewingSessionId && (
-        <HistoryDetail
-          sessionId={viewingSessionId}
-          onBack={() => setScreen('history')}
+      {screen === 'call-detail' && activeCallId && (
+        <CallDetailView
+          callId={activeCallId}
+          onBack={handleBackToHistory}
+          onDeleted={handleBackToHistory}
         />
       )}
     </div>

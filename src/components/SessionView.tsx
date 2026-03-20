@@ -26,7 +26,7 @@ export function SessionView({ onEnd }: SessionViewProps) {
   const latestMessagesRef = useRef(gemini.messages);
   const hasEndedRef = useRef(false);
 
-  const [videoMode, setVideoMode] = useState<VideoMode>('live');
+  const [videoMode, setVideoMode] = useState<VideoMode>('photo');
   const [photoFlash, setPhotoFlash] = useState(false);
   const [lastPhotoThumb, setLastPhotoThumb] = useState<string | null>(null);
   const [textDraft, setTextDraft] = useState('');
@@ -35,6 +35,9 @@ export function SessionView({ onEnd }: SessionViewProps) {
   const statusLabelOverride = gemini.state === 'active' && videoMode === 'photo'
     ? 'Audio Live'
     : undefined;
+  const overlayBottomInsetClass = videoMode === 'photo'
+    ? 'bottom-[calc(11rem+env(safe-area-inset-bottom,0px))]'
+    : 'bottom-[calc(7.5rem+env(safe-area-inset-bottom,0px))]';
 
   const audio = useAudio({
     onAudioChunk: gemini.sendAudio,
@@ -223,11 +226,14 @@ export function SessionView({ onEnd }: SessionViewProps) {
       )}
 
       {/* Chat overlay */}
-      <ChatOverlay messages={gemini.messages} />
+      <ChatOverlay messages={gemini.messages} bottomInsetClass={overlayBottomInsetClass} />
 
       {/* Text fallback when camera is unavailable */}
       {!camera.isActive && gemini.state === 'active' && (
-        <div className="absolute left-3 right-3 bottom-[7.5rem] z-10">
+        <div
+          data-testid="camera-off-composer"
+          className={`absolute left-3 right-3 z-10 ${overlayBottomInsetClass}`}
+        >
           <TextComposer
             value={textDraft}
             onChange={setTextDraft}

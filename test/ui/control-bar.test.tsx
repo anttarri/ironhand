@@ -91,4 +91,11 @@ describe('ControlBar video mode', () => {
     await user.click(screen.getByRole('button', { name: 'Live' }));
     expect(onSelectVideoMode).toHaveBeenCalledWith('live');
   });
+
+  it('allows photo mode actions to wrap on narrow layouts', () => {
+    render(<ControlBar {...defaultProps} videoMode="photo" isTorchAvailable />);
+
+    expect(screen.getByTestId('photo-mode-actions')).toHaveClass('flex-wrap');
+    expect(screen.getByTestId('photo-mode-actions')).toHaveClass('sm:flex-nowrap');
+  });
 });

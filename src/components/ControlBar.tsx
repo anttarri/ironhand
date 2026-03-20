@@ -168,7 +168,10 @@ export function ControlBar({
               <div className="w-full sm:w-auto">
                 {modeSelector}
               </div>
-              <div className="flex w-full items-end justify-between gap-3 sm:w-auto sm:justify-end">
+              <div
+                data-testid="photo-mode-actions"
+                className="flex w-full flex-wrap items-end justify-between gap-x-3 gap-y-4 sm:w-auto sm:flex-nowrap sm:justify-end"
+              >
                 {shutterControl}
                 {torchControl}
                 {micControl}

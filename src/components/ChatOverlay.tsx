@@ -3,9 +3,13 @@ import type { ChatMessage } from '@/types';
 
 interface ChatOverlayProps {
   messages: ChatMessage[];
+  bottomInsetClass?: string;
 }
 
-export function ChatOverlay({ messages }: ChatOverlayProps) {
+export function ChatOverlay({
+  messages,
+  bottomInsetClass = 'bottom-[calc(7.5rem+env(safe-area-inset-bottom,0px))]',
+}: ChatOverlayProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [collapsed, setCollapsed] = useState(false);
 
@@ -19,7 +23,7 @@ export function ChatOverlay({ messages }: ChatOverlayProps) {
     return (
       <button
         onClick={() => setCollapsed(false)}
-        className="absolute bottom-28 right-4 glass-elevated rounded-full px-4 py-2 text-white/80 text-sm active:bg-white/[0.1] font-medium"
+        className={`absolute right-4 glass-elevated rounded-full px-4 py-2 text-white/80 text-sm active:bg-white/[0.1] font-medium ${bottomInsetClass}`}
       >
         Chat ({messages.length})
       </button>
@@ -27,7 +31,10 @@ export function ChatOverlay({ messages }: ChatOverlayProps) {
   }
 
   return (
-    <div className="absolute bottom-28 left-0 right-0 max-h-[40vh] flex flex-col">
+    <div
+      data-testid="chat-overlay"
+      className={`absolute left-0 right-0 max-h-[40vh] flex flex-col ${bottomInsetClass}`}
+    >
       {/* Collapse handle */}
       <button
         onClick={() => setCollapsed(true)}

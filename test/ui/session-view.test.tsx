@@ -24,7 +24,8 @@ const mocks = vi.hoisted(() => ({
   startCallLog: vi.fn(() => ({ id: 'call-1' })),
   updateCallLogMessages: vi.fn(),
   finalizeCallLog: vi.fn(),
-  messages: [] as Array<{ id: string; role: string; text: string }>,
+  messages: [] as Array<{ id: string; role: string; text: string; timestamp?: number }>,
+  cameraIsActive: true,
 }));
 
 import { SessionView } from '../../src/components/SessionView';
@@ -60,7 +61,7 @@ vi.mock('../../src/hooks/useAudio', () => ({
 vi.mock('../../src/hooks/useCamera', () => ({
   useCamera: () => ({
     videoRef: { current: null },
-    isActive: true,
+    isActive: mocks.cameraIsActive,
     isStreaming: true,
     facingMode: 'environment',
     isTorchAvailable: true,
@@ -95,20 +96,58 @@ describe('SessionView lifecycle', () => {
     cleanup();
     vi.clearAllMocks();
     mocks.messages = [];
+    mocks.cameraIsActive = true;
   });
 
-  it('defaults to live video mode', () => {
+  it('defaults to photo video mode', () => {
     render(<SessionView onEnd={() => {}} />);
 
-    expect(screen.getByRole('button', { name: 'Live' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'Photo' })).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.queryByRole('button', { name: /take photo/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Live' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Photo' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /take photo/i })).toBeInTheDocument();
+    expect(screen.getByText('Audio Live')).toBeInTheDocument();
+  });
+
+  it('does not start frame streaming on first render in default photo mode', () => {
+    render(<SessionView onEnd={() => {}} />);
+
+    expect(mocks.startStreaming).not.toHaveBeenCalled();
+  });
+
+  it('positions the chat overlay above the photo tray', () => {
+    mocks.messages = [{ id: '1', role: 'ai', text: 'Visible response', timestamp: Date.now() }];
+    render(<SessionView onEnd={() => {}} />);
+
+    expect(screen.getByTestId('chat-overlay')).toHaveClass('bottom-[calc(11rem+env(safe-area-inset-bottom,0px))]');
+  });
+
+  it('positions the collapsed chat button above the photo tray', async () => {
+    const user = userEvent.setup();
+    mocks.messages = [{ id: '1', role: 'ai', text: 'Visible response', timestamp: Date.now() }];
+    render(<SessionView onEnd={() => {}} />);
+
+    await user.click(screen.getByRole('button', { name: /hide chat/i }));
+
+    expect(screen.getByRole('button', { name: /chat \(1\)/i })).toHaveClass(
+      'bottom-[calc(11rem+env(safe-area-inset-bottom,0px))]',
+    );
+  });
+
+  it('positions the camera-off text composer above the photo tray', () => {
+    mocks.cameraIsActive = false;
+    render(<SessionView onEnd={() => {}} />);
+
+    expect(screen.getByTestId('camera-off-composer')).toHaveClass(
+      'bottom-[calc(11rem+env(safe-area-inset-bottom,0px))]',
+    );
   });
 
   it('selects photo mode and stops streaming', async () => {
     const user = userEvent.setup();
     render(<SessionView onEnd={() => {}} />);
 
+    await user.click(screen.getByRole('button', { name: 'Live' }));
+    mocks.stopStreaming.mockClear();
     await user.click(screen.getByRole('button', { name: 'Photo' }));
 
     expect(mocks.stopStreaming).toHaveBeenCalled();
@@ -122,7 +161,6 @@ describe('SessionView lifecycle', () => {
     const user = userEvent.setup();
     render(<SessionView onEnd={() => {}} />);
 
-    await user.click(screen.getByRole('button', { name: 'Photo' }));
     await user.click(screen.getByRole('button', { name: /take photo/i }));
 
     expect(mocks.capturePhoto).toHaveBeenCalledTimes(1);
@@ -133,8 +171,6 @@ describe('SessionView lifecycle', () => {
     const user = userEvent.setup();
     render(<SessionView onEnd={() => {}} />);
 
-    await user.click(screen.getByRole('button', { name: 'Photo' }));
-    mocks.startStreaming.mockClear();
     await user.click(screen.getByRole('button', { name: 'Live' }));
 
     expect(mocks.startStreaming).toHaveBeenCalled();
@@ -146,6 +182,7 @@ describe('SessionView lifecycle', () => {
     const user = userEvent.setup();
     render(<SessionView onEnd={() => {}} />);
 
+    await user.click(screen.getByRole('button', { name: 'Live' }));
     await user.click(screen.getByRole('button', { name: 'Photo' }));
 
     expect(mocks.cleanupAudio).not.toHaveBeenCalled();
@@ -158,17 +195,17 @@ describe('SessionView lifecycle', () => {
 
     mocks.startStreaming.mockClear();
     mocks.stopStreaming.mockClear();
-    await user.click(screen.getByRole('button', { name: 'Live' }));
+    await user.click(screen.getByRole('button', { name: 'Photo' }));
 
     expect(mocks.startStreaming).not.toHaveBeenCalled();
     expect(mocks.stopStreaming).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole('button', { name: 'Photo' }));
-    mocks.stopStreaming.mockClear();
+    await user.click(screen.getByRole('button', { name: 'Live' }));
+    expect(mocks.startStreaming).toHaveBeenCalledTimes(1);
 
-    await user.click(screen.getByRole('button', { name: 'Photo' }));
-
-    expect(mocks.stopStreaming).not.toHaveBeenCalled();
+    mocks.startStreaming.mockClear();
+    await user.click(screen.getByRole('button', { name: 'Live' }));
+    expect(mocks.startStreaming).not.toHaveBeenCalled();
   });
 
   it('flashlight toggle works without ending session', async () => {
@@ -185,7 +222,6 @@ describe('SessionView lifecycle', () => {
     const user = userEvent.setup();
     render(<SessionView onEnd={() => {}} />);
 
-    await user.click(screen.getByRole('button', { name: 'Photo' }));
     await user.click(screen.getByRole('button', { name: /take photo/i }));
 
     expect(screen.getByTestId('analysis-overlay')).toBeInTheDocument();
@@ -196,13 +232,12 @@ describe('SessionView lifecycle', () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const { rerender } = render(<SessionView onEnd={() => {}} />);
 
-    await user.click(screen.getByRole('button', { name: 'Photo' }));
     await user.click(screen.getByRole('button', { name: /take photo/i }));
 
     expect(screen.getByTestId('analysis-overlay')).toBeInTheDocument();
 
     // Simulate AI response by updating messages
-    mocks.messages = [{ id: '1', role: 'ai', text: 'I see a panel' }];
+    mocks.messages = [{ id: '1', role: 'ai', text: 'I see a panel', timestamp: Date.now() }];
     rerender(<SessionView onEnd={() => {}} />);
 
     // Advance past the resolve phase (400ms)

@@ -26,7 +26,7 @@ export function SessionView({ onEnd }: SessionViewProps) {
   const latestMessagesRef = useRef(gemini.messages);
   const hasEndedRef = useRef(false);
 
-  const [videoMode, setVideoMode] = useState<VideoMode>('photo');
+  const [videoMode, setVideoMode] = useState<VideoMode>('live');
   const [photoFlash, setPhotoFlash] = useState(false);
   const [lastPhotoThumb, setLastPhotoThumb] = useState<string | null>(null);
   const [textDraft, setTextDraft] = useState('');

@@ -41,6 +41,7 @@ vi.mock('../../src/hooks/useGeminiLive', () => ({
     sendVideo: mocks.sendVideo,
     sendText: vi.fn(),
     setAudioCallback: mocks.setAudioCallback,
+    connectionQuality: 'good',
   }),
 }));
 
@@ -73,6 +74,7 @@ vi.mock('../../src/hooks/useCamera', () => ({
     toggleCamera: mocks.toggleCamera,
     toggleTorch: mocks.toggleTorch,
     capturePhoto: mocks.capturePhoto,
+    focusAt: vi.fn(async () => false),
   }),
 }));
 
@@ -99,13 +101,12 @@ describe('SessionView lifecycle', () => {
     mocks.cameraIsActive = true;
   });
 
-  it('defaults to photo video mode', () => {
+  it('defaults to live video mode', () => {
     render(<SessionView onEnd={() => {}} />);
 
-    expect(screen.getByRole('button', { name: 'Live' })).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.getByRole('button', { name: 'Photo' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: /take photo/i })).toBeInTheDocument();
-    expect(screen.getByText('Audio Live')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Live' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Photo' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByRole('button', { name: /take photo/i })).not.toBeInTheDocument();
   });
 
   it('does not start frame streaming on first render in default photo mode', () => {
@@ -114,14 +115,14 @@ describe('SessionView lifecycle', () => {
     expect(mocks.startStreaming).not.toHaveBeenCalled();
   });
 
-  it('positions the chat overlay above the photo tray', () => {
+  it('positions the chat overlay with live inset by default', () => {
     mocks.messages = [{ id: '1', role: 'ai', text: 'Visible response', timestamp: Date.now() }];
     render(<SessionView onEnd={() => {}} />);
 
-    expect(screen.getByTestId('chat-overlay')).toHaveClass('bottom-[calc(11rem+env(safe-area-inset-bottom,0px))]');
+    expect(screen.getByTestId('chat-overlay')).toHaveClass('bottom-[calc(7.5rem+env(safe-area-inset-bottom,0px))]');
   });
 
-  it('positions the collapsed chat button above the photo tray', async () => {
+  it('positions the collapsed chat button with live inset by default', async () => {
     const user = userEvent.setup();
     mocks.messages = [{ id: '1', role: 'ai', text: 'Visible response', timestamp: Date.now() }];
     render(<SessionView onEnd={() => {}} />);
@@ -129,16 +130,16 @@ describe('SessionView lifecycle', () => {
     await user.click(screen.getByRole('button', { name: /hide chat/i }));
 
     expect(screen.getByRole('button', { name: /chat \(1\)/i })).toHaveClass(
-      'bottom-[calc(11rem+env(safe-area-inset-bottom,0px))]',
+      'bottom-[calc(7.5rem+env(safe-area-inset-bottom,0px))]',
     );
   });
 
-  it('positions the camera-off text composer above the photo tray', () => {
+  it('positions the camera-off text composer with live inset by default', () => {
     mocks.cameraIsActive = false;
     render(<SessionView onEnd={() => {}} />);
 
     expect(screen.getByTestId('camera-off-composer')).toHaveClass(
-      'bottom-[calc(11rem+env(safe-area-inset-bottom,0px))]',
+      'bottom-[calc(7.5rem+env(safe-area-inset-bottom,0px))]',
     );
   });
 
@@ -146,7 +147,6 @@ describe('SessionView lifecycle', () => {
     const user = userEvent.setup();
     render(<SessionView onEnd={() => {}} />);
 
-    await user.click(screen.getByRole('button', { name: 'Live' }));
     mocks.stopStreaming.mockClear();
     await user.click(screen.getByRole('button', { name: 'Photo' }));
 
@@ -161,6 +161,7 @@ describe('SessionView lifecycle', () => {
     const user = userEvent.setup();
     render(<SessionView onEnd={() => {}} />);
 
+    await user.click(screen.getByRole('button', { name: 'Photo' }));
     await user.click(screen.getByRole('button', { name: /take photo/i }));
 
     expect(mocks.capturePhoto).toHaveBeenCalledTimes(1);
@@ -171,6 +172,8 @@ describe('SessionView lifecycle', () => {
     const user = userEvent.setup();
     render(<SessionView onEnd={() => {}} />);
 
+    await user.click(screen.getByRole('button', { name: 'Photo' }));
+    mocks.startStreaming.mockClear();
     await user.click(screen.getByRole('button', { name: 'Live' }));
 
     expect(mocks.startStreaming).toHaveBeenCalled();
@@ -182,7 +185,6 @@ describe('SessionView lifecycle', () => {
     const user = userEvent.setup();
     render(<SessionView onEnd={() => {}} />);
 
-    await user.click(screen.getByRole('button', { name: 'Live' }));
     await user.click(screen.getByRole('button', { name: 'Photo' }));
 
     expect(mocks.cleanupAudio).not.toHaveBeenCalled();
@@ -195,17 +197,17 @@ describe('SessionView lifecycle', () => {
 
     mocks.startStreaming.mockClear();
     mocks.stopStreaming.mockClear();
-    await user.click(screen.getByRole('button', { name: 'Photo' }));
+    await user.click(screen.getByRole('button', { name: 'Live' }));
 
     expect(mocks.startStreaming).not.toHaveBeenCalled();
     expect(mocks.stopStreaming).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole('button', { name: 'Live' }));
-    expect(mocks.startStreaming).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole('button', { name: 'Photo' }));
+    expect(mocks.stopStreaming).toHaveBeenCalledTimes(1);
 
-    mocks.startStreaming.mockClear();
-    await user.click(screen.getByRole('button', { name: 'Live' }));
-    expect(mocks.startStreaming).not.toHaveBeenCalled();
+    mocks.stopStreaming.mockClear();
+    await user.click(screen.getByRole('button', { name: 'Photo' }));
+    expect(mocks.stopStreaming).not.toHaveBeenCalled();
   });
 
   it('flashlight toggle works without ending session', async () => {
@@ -222,6 +224,7 @@ describe('SessionView lifecycle', () => {
     const user = userEvent.setup();
     render(<SessionView onEnd={() => {}} />);
 
+    await user.click(screen.getByRole('button', { name: 'Photo' }));
     await user.click(screen.getByRole('button', { name: /take photo/i }));
 
     expect(screen.getByTestId('analysis-overlay')).toBeInTheDocument();
@@ -232,6 +235,7 @@ describe('SessionView lifecycle', () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const { rerender } = render(<SessionView onEnd={() => {}} />);
 
+    await user.click(screen.getByRole('button', { name: 'Photo' }));
     await user.click(screen.getByRole('button', { name: /take photo/i }));
 
     expect(screen.getByTestId('analysis-overlay')).toBeInTheDocument();

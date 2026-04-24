@@ -29,11 +29,12 @@ export function SessionView({ onEnd }: SessionViewProps) {
   const hasEndedRef = useRef(false);
   const lastFiredErrorRef = useRef<string | null>(null);
 
-  const [videoMode, setVideoMode] = useState<VideoMode>('photo');
+  const [videoMode, setVideoMode] = useState<VideoMode>('live');
   const [photoFlash, setPhotoFlash] = useState(false);
   const [lastPhotoThumb, setLastPhotoThumb] = useState<string | null>(null);
   const [textDraft, setTextDraft] = useState('');
   const [isScanning, setIsScanning] = useState(false);
+  const [isLiveScanning, setIsLiveScanning] = useState(false);
   const messageCountAtScanRef = useRef(0);
   const statusLabelOverride = gemini.state === 'active' && videoMode === 'photo'
     ? 'Audio Live'
@@ -155,6 +156,15 @@ export function SessionView({ onEnd }: SessionViewProps) {
     }
   }, [isScanning, gemini.messages]);
 
+  // Show scanning overlay while AI speaks in live mode
+  useEffect(() => {
+    if (videoMode === 'live' && audio.isAiSpeaking) {
+      setIsLiveScanning(true);
+    } else {
+      setIsLiveScanning(false);
+    }
+  }, [videoMode, audio.isAiSpeaking]);
+
   // Haptic + sound on error (ref-guarded to fire once per error)
   useEffect(() => {
     if (gemini.error && gemini.error !== lastFiredErrorRef.current) {
@@ -230,7 +240,7 @@ export function SessionView({ onEnd }: SessionViewProps) {
       )}
 
       {/* Analysis overlay */}
-      <AnalysisOverlay isActive={isScanning} />
+      <AnalysisOverlay isActive={isScanning || isLiveScanning} />
 
       {/* Status indicator - top left */}
       <div className="absolute top-4 left-4 safe-top z-10">

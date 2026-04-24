@@ -1,6 +1,8 @@
 import { useRef, useState, useCallback } from 'react';
 import { INPUT_SAMPLE_RATE, OUTPUT_SAMPLE_RATE } from '@/config/constants';
 import { pcmEncode, arrayBufferToBase64, base64ToArrayBuffer } from '@/services/mediaUtils';
+import { haptic } from '@/services/haptics';
+import { playSound } from '@/services/sounds';
 
 interface UseAudioOptions {
   onAudioChunk: (base64Pcm: string) => void;
@@ -21,6 +23,7 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
   const isMutedRef = useRef(false);
   const onAudioChunkRef = useRef(onAudioChunk);
   onAudioChunkRef.current = onAudioChunk;
+  const wasAiSpeakingRef = useRef(false);
 
   const startCapture = useCallback(async () => {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -110,11 +113,16 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
 
       source.start(nextPlayTimeRef.current);
       setIsAiSpeaking(true);
+      wasAiSpeakingRef.current = true;
 
       source.onended = () => {
-        // Check if this was the last queued chunk
         if (ctx.currentTime >= nextPlayTimeRef.current - 0.1) {
           setIsAiSpeaking(false);
+          if (wasAiSpeakingRef.current) {
+            wasAiSpeakingRef.current = false;
+            haptic('ai-ready');
+            playSound('ai-ready');
+          }
         }
       };
 

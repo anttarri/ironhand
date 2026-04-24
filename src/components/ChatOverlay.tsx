@@ -1,10 +1,13 @@
 import { useRef, useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import type { ChatMessage } from '@/types';
 
 interface ChatOverlayProps {
   messages: ChatMessage[];
   bottomInsetClass?: string;
 }
+
+const msgSpring = { type: 'spring' as const, stiffness: 380, damping: 28 };
 
 export function ChatOverlay({
   messages,
@@ -60,9 +63,12 @@ export function ChatOverlay({
         )}
 
         {messages.map((msg) => (
-          <div
+          <motion.div
             key={msg.id}
-            className={`flex animate-fade-slide-in ${
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={msgSpring}
+            className={`flex ${
               msg.role === 'user' ? 'justify-end' : msg.role === 'system' ? 'justify-center' : 'justify-start'
             }`}
           >
@@ -77,7 +83,7 @@ export function ChatOverlay({
             >
               {msg.text}
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>

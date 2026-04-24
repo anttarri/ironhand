@@ -1,10 +1,38 @@
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { getHapticsEnabled, setHapticsEnabled, haptic } from '@/services/haptics';
+import { getSoundsEnabled, setSoundsEnabled } from '@/services/sounds';
+
 interface StartScreenProps {
   onStartLive: () => void;
   onStartPhoto: () => void;
   onOpenHistory: () => void;
 }
 
+function TogglePill({ on, onToggle }: { on: boolean; onToggle: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={() => onToggle(!on)}
+      className={`relative w-10 h-6 rounded-full transition-colors ${on ? 'bg-amber-500' : 'bg-white/10'}`}
+    >
+      <motion.div
+        layout
+        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+        className="absolute top-1 w-4 h-4 rounded-full bg-white"
+        style={{ left: on ? 20 : 4 }}
+      />
+    </button>
+  );
+}
+
 export function StartScreen({ onStartLive, onStartPhoto, onOpenHistory }: StartScreenProps) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [hapticsOn, setHapticsOn] = useState(getHapticsEnabled);
+  const [soundsOn, setSoundsOn] = useState(getSoundsEnabled);
+
   return (
     <div className="h-full flex flex-col items-center justify-center px-6 bg-gradient-to-b from-charcoal-200 to-charcoal-900 relative overflow-hidden">
       {/* Grid texture */}
@@ -13,6 +41,54 @@ export function StartScreen({ onStartLive, onStartPhoto, onOpenHistory }: StartS
       {/* Ambient glow */}
       <div className="absolute top-[15%] left-1/2 -translate-x-1/2 w-[320px] h-[320px] rounded-full bg-amber-500/[0.07] blur-[80px] pointer-events-none" />
       <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[160px] h-[160px] rounded-full bg-amber-400/[0.10] blur-[50px] pointer-events-none" />
+
+      {/* Settings gear */}
+      <button
+        onClick={() => setSettingsOpen((p) => !p)}
+        className="absolute top-4 right-4 safe-top z-20 w-9 h-9 rounded-full glass-elevated flex items-center justify-center text-white/50 active:text-white/80 transition-colors"
+        aria-label="Settings"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+        </svg>
+      </button>
+
+      {/* Settings panel */}
+      <AnimatePresence>
+        {settingsOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            className="absolute top-16 right-4 safe-top z-20 w-56 rounded-2xl glass-elevated p-4 space-y-4"
+          >
+            <h3 className="text-[10px] font-mono font-medium text-white/40 uppercase tracking-[0.2em]">Settings</h3>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-white/70">Haptic feedback</span>
+              <TogglePill
+                on={hapticsOn}
+                onToggle={(v) => {
+                  setHapticsOn(v);
+                  setHapticsEnabled(v);
+                  if (v) haptic('tap');
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-white/70">Sound effects</span>
+              <TogglePill
+                on={soundsOn}
+                onToggle={(v) => {
+                  setSoundsOn(v);
+                  setSoundsEnabled(v);
+                }}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Logo */}
       <div className="mb-10 flex flex-col items-center animate-logo-float relative z-10">

@@ -1,6 +1,7 @@
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { GeminiClient } from '@/services/geminiClient';
 import { MAX_CHAT_MESSAGES } from '@/config/constants';
+import { haptic } from '@/services/haptics';
 import type { SessionState, ChatMessage } from '@/types';
 
 let messageIdCounter = 0;
@@ -8,13 +9,17 @@ function nextId(): string {
   return `msg-${++messageIdCounter}`;
 }
 
+type ConnectionQuality = 'good' | 'fair' | 'poor' | 'reconnecting';
+
 export function useGeminiLive() {
   const [state, setState] = useState<SessionState>('idle');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [connectionQuality, setConnectionQuality] = useState<ConnectionQuality>('good');
 
   const clientRef = useRef<GeminiClient | null>(null);
   const audioCallbackRef = useRef<((base64: string) => void) | null>(null);
+  const lastReceiveRef = useRef(Date.now());
 
   const addMessage = useCallback((role: ChatMessage['role'], text: string) => {
     setMessages((prev) => {
@@ -59,18 +64,22 @@ export function useGeminiLive() {
         onStateChange: (s: SessionState) => {
           setState(s);
           if (s === 'active') {
+            lastReceiveRef.current = Date.now();
             addMessage('system', 'Connected. Point your camera at what you are working on and start talking.');
           }
         },
         onAudioData: (base64: string) => {
+          lastReceiveRef.current = Date.now();
           audioCallbackRef.current?.(base64);
         },
         onTranscriptUser: (text: string) => {
+          lastReceiveRef.current = Date.now();
           if (text.trim()) {
             appendOrAddMessage('user', text);
           }
         },
         onTranscriptModel: (text: string) => {
+          lastReceiveRef.current = Date.now();
           if (text.trim()) {
             appendOrAddMessage('ai', text);
           }
@@ -83,6 +92,7 @@ export function useGeminiLive() {
           // Model finished speaking — could add UI indicator here
         },
         onError: (err: string) => {
+          haptic('error');
           setError(err);
           addMessage('system', `Error: ${err}`);
         },
@@ -120,6 +130,20 @@ export function useGeminiLive() {
     audioCallbackRef.current = cb;
   }, []);
 
+  useEffect(() => {
+    if (state !== 'active') {
+      setConnectionQuality('good');
+      return;
+    }
+    const id = setInterval(() => {
+      const gap = Date.now() - lastReceiveRef.current;
+      if (gap < 3000) setConnectionQuality('good');
+      else if (gap < 6000) setConnectionQuality('fair');
+      else setConnectionQuality('poor');
+    }, 1000);
+    return () => clearInterval(id);
+  }, [state]);
+
   return {
     state,
     messages,
@@ -130,5 +154,6 @@ export function useGeminiLive() {
     sendVideo,
     sendText,
     setAudioCallback,
+    connectionQuality,
   };
 }

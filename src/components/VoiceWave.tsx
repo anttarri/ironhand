@@ -14,17 +14,17 @@ const SHAPE = Array.from({ length: BAR_COUNT }, (_, i) => {
   return 1 - dist * 0.45;
 });
 
-function computeBars(volume: number): number[] {
-  const base = 2;
-  const range = 14;
-  return SHAPE.map((s) => base + range * volume * s);
-}
+const MIN_H = 2;
+const MAX_RANGE = 14;
+const SMOOTHING_UP = 0.35;
+const SMOOTHING_DOWN = 0.15;
 
-const IDLE_BARS = Array(BAR_COUNT).fill(2);
+const IDLE_BARS = Array(BAR_COUNT).fill(MIN_H);
 
 export function VoiceWave({ userVolume, aiVolume, isAiSpeaking, isMuted }: VoiceWaveProps) {
   const [bars, setBars] = useState(IDLE_BARS);
   const rafRef = useRef(0);
+  const smoothedRef = useRef(0);
   const volumeRef = useRef({ userVolume, aiVolume, isAiSpeaking, isMuted });
   volumeRef.current = { userVolume, aiVolume, isAiSpeaking, isMuted };
 
@@ -33,8 +33,20 @@ export function VoiceWave({ userVolume, aiVolume, isAiSpeaking, isMuted }: Voice
     const tick = () => {
       if (!active) return;
       const { userVolume: uv, aiVolume: av, isAiSpeaking: ai, isMuted: m } = volumeRef.current;
-      const vol = ai ? av : (m ? 0 : uv);
-      setBars(vol > 0.01 ? computeBars(vol) : IDLE_BARS);
+      const target = ai ? av : (m ? 0 : uv);
+
+      const prev = smoothedRef.current;
+      const rate = target > prev ? SMOOTHING_UP : SMOOTHING_DOWN;
+      const smoothed = prev + (target - prev) * rate;
+      smoothedRef.current = smoothed;
+
+      if (smoothed > 0.005) {
+        setBars(SHAPE.map((s) => MIN_H + MAX_RANGE * smoothed * s));
+      } else {
+        smoothedRef.current = 0;
+        setBars(IDLE_BARS);
+      }
+
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
@@ -52,10 +64,8 @@ export function VoiceWave({ userVolume, aiVolume, isAiSpeaking, isMuted }: Voice
       {bars.map((h, i) => (
         <div
           key={i}
-          className={`w-[3px] rounded-full transition-[height] duration-100 ${
-            active ? color : 'bg-white/15'
-          }`}
-          style={{ height: `${h}px` }}
+          className={`w-[3px] rounded-full ${active ? color : 'bg-white/15'}`}
+          style={{ height: `${h}px`, transition: 'height 80ms linear' }}
         />
       ))}
     </div>

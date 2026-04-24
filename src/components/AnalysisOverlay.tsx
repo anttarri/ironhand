@@ -32,27 +32,6 @@ function getRadianceStyle(phase: AnalysisPhase): React.CSSProperties {
   }
 }
 
-function CornerBrackets({ phase }: { phase: AnalysisPhase }) {
-  const visible = phase === 'focus' || phase === 'study';
-  const resolving = phase === 'resolve';
-
-  return (
-    <div
-      className="absolute inset-0 transition-opacity duration-400"
-      style={{ opacity: resolving ? 0 : visible ? 1 : 0 }}
-    >
-      {/* Top-left */}
-      <svg className="absolute top-5 left-5 animate-scale-in" width="32" height="32" viewBox="0 0 32 32" fill="none">
-        <path d="M2 12V4a2 2 0 012-2h8" stroke="rgb(251 191 36)" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round" />
-      </svg>
-      {/* Top-right */}
-      <svg className="absolute top-5 right-5 animate-scale-in" width="32" height="32" viewBox="0 0 32 32" fill="none">
-        <path d="M30 12V4a2 2 0 00-2-2h-8" stroke="rgb(251 191 36)" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round" />
-      </svg>
-    </div>
-  );
-}
-
 export function AnalysisOverlay({ isActive }: AnalysisOverlayProps) {
   const { phase, isVisible } = useAnalysisAnimation({ isActive });
 
@@ -89,9 +68,6 @@ export function AnalysisOverlay({ isActive }: AnalysisOverlayProps) {
           <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-amber-400/60 to-transparent animate-scan-sweep" />
         </div>
       )}
-
-      {/* Corner brackets */}
-      <CornerBrackets phase={phase} />
 
       {/* Status text */}
       <span className="absolute top-20 left-0 right-0 text-center text-[11px] font-mono text-amber-400/60">

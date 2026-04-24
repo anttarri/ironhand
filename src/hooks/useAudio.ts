@@ -28,6 +28,7 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
   const onAudioChunkRef = useRef(onAudioChunk);
   onAudioChunkRef.current = onAudioChunk;
   const wasAiSpeakingRef = useRef(false);
+  const aiSpeakingTimerRef = useRef<number>(0);
 
   // Volume refs — written by audio callbacks, read by RAF loop
   const userVolumeRef = useRef(0);
@@ -75,7 +76,9 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
         sum += inputData[i] * inputData[i];
       }
       const rms = Math.sqrt(sum / inputData.length);
-      userVolumeRef.current = isMutedRef.current ? 0 : Math.min(1, rms * 5);
+      const target = isMutedRef.current ? 0 : Math.min(1, rms * 5);
+      const prev = userVolumeRef.current;
+      userVolumeRef.current = prev + (target - prev) * (target > prev ? 0.4 : 0.2);
 
       if (isMutedRef.current) return;
       const pcmBuffer = pcmEncode(inputData);
@@ -135,7 +138,9 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
         sum += float32[i] * float32[i];
       }
       const rms = Math.sqrt(sum / float32.length);
-      aiVolumeRef.current = Math.min(1, rms * 4);
+      const aiTarget = Math.min(1, rms * 4);
+      const aiPrev = aiVolumeRef.current;
+      aiVolumeRef.current = aiPrev + (aiTarget - aiPrev) * (aiTarget > aiPrev ? 0.4 : 0.2);
 
       const audioBuffer = ctx.createBuffer(1, float32.length, OUTPUT_SAMPLE_RATE);
       audioBuffer.getChannelData(0).set(float32);
@@ -155,13 +160,18 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
 
       source.onended = () => {
         if (ctx.currentTime >= nextPlayTimeRef.current - 0.1) {
-          setIsAiSpeaking(false);
-          aiVolumeRef.current = 0;
-          if (wasAiSpeakingRef.current) {
-            wasAiSpeakingRef.current = false;
-            haptic('ai-ready');
-            playSound('ai-ready');
-          }
+          window.clearTimeout(aiSpeakingTimerRef.current);
+          aiSpeakingTimerRef.current = window.setTimeout(() => {
+            if (nextPlayTimeRef.current <= (playbackCtxRef.current?.currentTime ?? 0) + 0.1) {
+              setIsAiSpeaking(false);
+              aiVolumeRef.current = 0;
+              if (wasAiSpeakingRef.current) {
+                wasAiSpeakingRef.current = false;
+                haptic('ai-ready');
+                playSound('ai-ready');
+              }
+            }
+          }, 250);
         }
       };
 
@@ -171,6 +181,7 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
   );
 
   const stopPlayback = useCallback(() => {
+    window.clearTimeout(aiSpeakingTimerRef.current);
     if (playbackCtxRef.current && playbackCtxRef.current.state !== 'closed') {
       playbackCtxRef.current.close();
     }

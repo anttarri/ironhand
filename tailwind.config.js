@@ -29,7 +29,7 @@ export default {
         surface: '#25253e',
       },
       animation: {
-        'pulse-dot': 'pulse-dot 1.5s ease-in-out infinite',
+        'pulse-dot': 'pulse-dot 1.2s ease-in-out infinite',
         'fade-in': 'fadeIn 300ms ease-out',
         'fade-slide-in': 'fadeSlideIn 400ms ease-out both',
         'scale-in': 'scaleIn 250ms ease-out',
@@ -42,8 +42,8 @@ export default {
       },
       keyframes: {
         'pulse-dot': {
-          '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.4' },
+          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+          '50%': { opacity: '0.3', transform: 'scale(0.7)' },
         },
         fadeIn: {
           from: { opacity: '0' },

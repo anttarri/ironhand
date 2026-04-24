@@ -1,14 +1,34 @@
-import { RefObject } from 'react';
+import { RefObject, useState, useRef, useCallback } from 'react';
 
 interface CameraPreviewProps {
   videoRef: RefObject<HTMLVideoElement | null>;
   isActive: boolean;
   videoMode?: 'live' | 'photo';
+  onFocus?: (x: number, y: number) => void;
 }
 
-export function CameraPreview({ videoRef, isActive, videoMode }: CameraPreviewProps) {
+export function CameraPreview({ videoRef, isActive, videoMode, onFocus }: CameraPreviewProps) {
+  const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
+  const focusTimerRef = useRef<number | null>(null);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isActive || !onFocus) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+
+    setFocusPoint({ x, y });
+    onFocus(x, y);
+
+    if (focusTimerRef.current !== null) clearTimeout(focusTimerRef.current);
+    focusTimerRef.current = window.setTimeout(() => {
+      setFocusPoint(null);
+      focusTimerRef.current = null;
+    }, 800);
+  }, [isActive, onFocus]);
+
   return (
-    <div className="absolute inset-0 bg-charcoal">
+    <div className="absolute inset-0 bg-charcoal" onPointerDown={handlePointerDown}>
       <video
         ref={videoRef}
         autoPlay
@@ -40,6 +60,21 @@ export function CameraPreview({ videoRef, isActive, videoMode }: CameraPreviewPr
             <line x1="1" y1="1" x2="23" y2="23" />
           </svg>
           <div className="text-white/30 text-sm">Camera off</div>
+        </div>
+      )}
+      {/* Focus indicator */}
+      {focusPoint && (
+        <div
+          className="absolute z-20 pointer-events-none animate-focus-ring"
+          style={{
+            left: `${focusPoint.x * 100}%`,
+            top: `${focusPoint.y * 100}%`,
+            width: 72,
+            height: 72,
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          <div className="w-full h-full rounded-lg border-2 border-amber-400" />
         </div>
       )}
     </div>

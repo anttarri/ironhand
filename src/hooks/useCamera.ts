@@ -152,6 +152,22 @@ export function useCamera({ onFrame }: UseCameraOptions = {}) {
     return captureFrame(videoRef.current, CAMERA_FRAME_MAX_WIDTH, CAMERA_FRAME_QUALITY);
   }, []);
 
+  const focusAt = useCallback(async (x: number, y: number) => {
+    const track = getVideoTrack();
+    if (!track || typeof track.applyConstraints !== 'function') return false;
+    try {
+      await track.applyConstraints({
+        advanced: [{
+          pointsOfInterest: [{ x, y }],
+          focusMode: 'single-shot',
+        } as MediaTrackConstraintSet],
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }, [getVideoTrack]);
+
   // Pause frame capture when page hidden
   useEffect(() => {
     const handleVisibility = () => {
@@ -192,6 +208,7 @@ export function useCamera({ onFrame }: UseCameraOptions = {}) {
     stopStreaming,
     toggleCamera,
     capturePhoto,
+    focusAt,
     isTorchAvailable,
     isTorchOn,
     toggleTorch,

@@ -4,6 +4,8 @@ import { useAudio } from '@/hooks/useAudio';
 import { useCamera } from '@/hooks/useCamera';
 import { CALL_LOG_SAVE_DEBOUNCE_MS } from '@/config/constants';
 import { finalizeCallLog, startCallLog, updateCallLogMessages } from '@/services/callLogStore';
+import { haptic } from '@/services/haptics';
+import { playSound } from '@/services/sounds';
 import { CameraPreview } from './CameraPreview';
 import { ChatOverlay } from './ChatOverlay';
 import { ControlBar } from './ControlBar';
@@ -25,8 +27,9 @@ export function SessionView({ onEnd }: SessionViewProps) {
   const saveTimerRef = useRef<number | null>(null);
   const latestMessagesRef = useRef(gemini.messages);
   const hasEndedRef = useRef(false);
+  const lastFiredErrorRef = useRef<string | null>(null);
 
-  const [videoMode, setVideoMode] = useState<VideoMode>('live');
+  const [videoMode, setVideoMode] = useState<VideoMode>('photo');
   const [photoFlash, setPhotoFlash] = useState(false);
   const [lastPhotoThumb, setLastPhotoThumb] = useState<string | null>(null);
   const [textDraft, setTextDraft] = useState('');
@@ -133,6 +136,8 @@ export function SessionView({ onEnd }: SessionViewProps) {
   const prevStateRef = useRef(gemini.state);
   useEffect(() => {
     if (prevStateRef.current !== 'active' && gemini.state === 'active') {
+      haptic('start');
+      playSound('start');
       audio.startCapture().catch(() => {
         // Mic permission denied
       });
@@ -149,6 +154,18 @@ export function SessionView({ onEnd }: SessionViewProps) {
       setIsScanning(false);
     }
   }, [isScanning, gemini.messages]);
+
+  // Haptic + sound on error (ref-guarded to fire once per error)
+  useEffect(() => {
+    if (gemini.error && gemini.error !== lastFiredErrorRef.current) {
+      lastFiredErrorRef.current = gemini.error;
+      haptic('error');
+      playSound('error');
+    }
+    if (!gemini.error) {
+      lastFiredErrorRef.current = null;
+    }
+  }, [gemini.error]);
 
   const handleSelectVideoMode = useCallback((nextMode: VideoMode) => {
     if (nextMode === videoMode) return;
@@ -169,6 +186,8 @@ export function SessionView({ onEnd }: SessionViewProps) {
       gemini.sendVideo(frame);
       setLastPhotoThumb(frame);
       setPhotoFlash(true);
+      haptic('success');
+      playSound('capture');
       setTimeout(() => setPhotoFlash(false), 150);
       messageCountAtScanRef.current = gemini.messages.length;
       setIsScanning(true);
@@ -176,6 +195,8 @@ export function SessionView({ onEnd }: SessionViewProps) {
   }, [camera, gemini]);
 
   const handleEnd = useCallback(() => {
+    haptic('end');
+    playSound('end');
     hasEndedRef.current = true;
     finalizeCurrentCall('completed');
     gemini.disconnect();
@@ -188,7 +209,15 @@ export function SessionView({ onEnd }: SessionViewProps) {
   return (
     <div className="relative h-full w-full overflow-hidden bg-charcoal">
       {/* Camera feed - full screen background */}
-      <CameraPreview videoRef={camera.videoRef} isActive={camera.isActive} videoMode={videoMode} />
+      <CameraPreview
+        videoRef={camera.videoRef}
+        isActive={camera.isActive}
+        videoMode={videoMode}
+        onFocus={(x, y) => {
+          haptic('tap');
+          void camera.focusAt(x, y);
+        }}
+      />
 
       {/* Mode indicator border */}
       <div className={`absolute inset-0 z-10 pointer-events-none border-[3px] transition-colors duration-300 ${
@@ -209,6 +238,8 @@ export function SessionView({ onEnd }: SessionViewProps) {
           state={gemini.state}
           error={gemini.error}
           labelOverride={statusLabelOverride}
+          isAiSpeaking={audio.isAiSpeaking}
+          connectionQuality={gemini.connectionQuality}
         />
       </div>
 

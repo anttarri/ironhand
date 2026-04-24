@@ -1,3 +1,6 @@
+import { motion } from 'framer-motion';
+import { haptic } from '@/services/haptics';
+
 interface ControlBarProps {
   isMuted: boolean;
   isCameraOn: boolean;
@@ -31,42 +34,56 @@ export function ControlBar({
       <span className="pl-1 text-[9px] font-mono font-medium text-white/30 uppercase tracking-[0.22em]">
         Mode
       </span>
-      <div className="flex min-w-0 items-center rounded-[18px] border border-white/8 bg-black/15 p-1 backdrop-blur-sm">
+      <div className="relative flex min-w-0 items-center rounded-[18px] border border-white/8 bg-black/15 p-1 backdrop-blur-sm">
         <button
           type="button"
-          onClick={() => onSelectVideoMode('live')}
+          onClick={() => { haptic('tap'); onSelectVideoMode('live'); }}
           aria-pressed={videoMode === 'live'}
-          className={`flex h-9 items-center gap-1.5 rounded-[13px] px-2.5 outline-none active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-white/40 ${
-            videoMode === 'live'
-              ? 'bg-white/12 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.05)]'
-              : 'text-white/55 hover:text-white/80'
+          className={`relative flex h-9 items-center gap-1.5 rounded-[13px] px-2.5 outline-none active:scale-[0.98] transition-colors focus-visible:ring-2 focus-visible:ring-white/40 ${
+            videoMode === 'live' ? 'text-white' : 'text-white/55 hover:text-white/80'
           }`}
         >
           {videoMode === 'live' && (
-            <span className="h-1.5 w-1.5 rounded-full bg-danger animate-pulse-dot" />
+            <motion.div
+              layoutId="mode-selector-active"
+              className="absolute inset-0 rounded-[13px] bg-white/12 shadow-[0_0_0_1px_rgba(255,255,255,0.05)]"
+              transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+            />
           )}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M23 7l-7 5 7 5V7z" />
-            <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-          </svg>
-          <span className="text-[11px] font-medium tracking-tight">Live</span>
+          <span className="relative z-10 flex items-center gap-1.5">
+            {videoMode === 'live' && (
+              <span className="h-1.5 w-1.5 rounded-full bg-danger animate-pulse-dot" />
+            )}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 7l-7 5 7 5V7z" />
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+            </svg>
+            <span className="text-[11px] font-medium tracking-tight">Live</span>
+          </span>
         </button>
         <button
           type="button"
-          onClick={() => onSelectVideoMode('photo')}
+          onClick={() => { haptic('tap'); onSelectVideoMode('photo'); }}
           aria-pressed={videoMode === 'photo'}
-          className={`flex h-9 items-center gap-1.5 rounded-[13px] px-2.5 outline-none active:scale-[0.98] transition-all focus-visible:ring-2 focus-visible:ring-amber-300/60 ${
-            videoMode === 'photo'
-              ? 'bg-amber-500 text-charcoal shadow-[0_0_0_1px_rgba(255,149,0,0.18)]'
-              : 'text-white/55 hover:text-white/80'
+          className={`relative flex h-9 items-center gap-1.5 rounded-[13px] px-2.5 outline-none active:scale-[0.98] transition-colors focus-visible:ring-2 focus-visible:ring-amber-300/60 ${
+            videoMode === 'photo' ? 'text-charcoal' : 'text-white/55 hover:text-white/80'
           }`}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="2" y="6" width="20" height="14" rx="2" />
-            <circle cx="12" cy="13" r="4" />
-            <circle cx="12" cy="13" r="1.5" fill="currentColor" />
-          </svg>
-          <span className="text-[11px] font-medium tracking-tight">Photo</span>
+          {videoMode === 'photo' && (
+            <motion.div
+              layoutId="mode-selector-active"
+              className="absolute inset-0 rounded-[13px] bg-amber-500 shadow-[0_0_0_1px_rgba(255,149,0,0.18)]"
+              transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+            />
+          )}
+          <span className="relative z-10 flex items-center gap-1.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="6" width="20" height="14" rx="2" />
+              <circle cx="12" cy="13" r="4" />
+              <circle cx="12" cy="13" r="1.5" fill="currentColor" />
+            </svg>
+            <span className="text-[11px] font-medium tracking-tight">Photo</span>
+          </span>
         </button>
       </div>
     </div>
@@ -76,7 +93,7 @@ export function ControlBar({
     <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5 sm:flex-none">
       <button
         type="button"
-        onClick={onCapturePhoto}
+        onClick={() => { haptic('tap'); onCapturePhoto(); }}
         className="h-10 w-10 rounded-full border-[3px] border-white/85 bg-white/20 active:scale-95 active:bg-white/40 transition-all"
         aria-label="Take photo"
       />
@@ -88,7 +105,7 @@ export function ControlBar({
     <div className={`flex min-w-0 flex-col items-center gap-1.5 ${isPhotoMode ? 'flex-1 sm:flex-none' : ''}`}>
       <button
         type="button"
-        onClick={onToggleTorch}
+        onClick={() => { haptic('tap'); onToggleTorch(); }}
         className={`h-10 w-10 rounded-full flex items-center justify-center active:scale-95 transition-all ${
           isTorchOn ? 'bg-amber-500 text-charcoal' : 'bg-white/12 text-white'
         }`}
@@ -107,7 +124,7 @@ export function ControlBar({
     <div className={`flex min-w-0 flex-col items-center gap-1.5 ${isPhotoMode ? 'flex-1 sm:flex-none' : ''}`}>
       <button
         type="button"
-        onClick={onToggleMute}
+        onClick={() => { haptic('tap'); onToggleMute(); }}
         className={`w-[3.25rem] h-[3.25rem] min-w-[3.25rem] min-h-[3.25rem] rounded-full flex items-center justify-center active:scale-95 transition-all ${
           isMuted
             ? 'bg-danger'
@@ -142,7 +159,7 @@ export function ControlBar({
     <div className={`flex min-w-0 flex-col items-center gap-1.5 ${isPhotoMode ? 'flex-1 sm:flex-none' : ''}`}>
       <button
         type="button"
-        onClick={onEndSession}
+        onClick={() => { haptic('warning'); onEndSession(); }}
         className="h-12 w-12 rounded-full bg-danger flex items-center justify-center active:scale-95 transition-all"
         aria-label="End session"
       >

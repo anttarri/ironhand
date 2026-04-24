@@ -36,6 +36,9 @@ export default {
         'shimmer': 'shimmer 2s ease-in-out infinite',
         'breathe': 'breathe 2s ease-in-out infinite',
         'logo-float': 'logoFloat 4s ease-in-out infinite',
+        'eq-bounce': 'eq-bounce 600ms ease-in-out infinite',
+        'scan-sweep': 'scan-sweep 2.4s ease-in-out infinite alternate',
+        'focus-ring': 'focus-ring 800ms ease-out forwards',
       },
       keyframes: {
         'pulse-dot': {
@@ -65,6 +68,20 @@ export default {
         logoFloat: {
           '0%, 100%': { transform: 'translateY(0)' },
           '50%': { transform: 'translateY(-4px)' },
+        },
+        'eq-bounce': {
+          '0%, 100%': { transform: 'scaleY(0.3)' },
+          '50%': { transform: 'scaleY(1)' },
+        },
+        'scan-sweep': {
+          from: { transform: 'translateY(0%)' },
+          to: { transform: 'translateY(100vh)' },
+        },
+        'focus-ring': {
+          '0%': { transform: 'translate(-50%, -50%) scale(1.4)', opacity: '1' },
+          '25%': { transform: 'translate(-50%, -50%) scale(1)', opacity: '1' },
+          '75%': { opacity: '1' },
+          '100%': { transform: 'translate(-50%, -50%) scale(1)', opacity: '0' },
         },
       },
     },

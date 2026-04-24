@@ -76,7 +76,7 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
         sum += inputData[i] * inputData[i];
       }
       const rms = Math.sqrt(sum / inputData.length);
-      const target = isMutedRef.current ? 0 : Math.min(1, rms * 5);
+      const target = isMutedRef.current ? 0 : Math.min(1, rms * 8);
       const prev = userVolumeRef.current;
       userVolumeRef.current = prev + (target - prev) * (target > prev ? 0.4 : 0.2);
 
@@ -138,7 +138,7 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
         sum += float32[i] * float32[i];
       }
       const rms = Math.sqrt(sum / float32.length);
-      const aiTarget = Math.min(1, rms * 4);
+      const aiTarget = Math.min(1, rms * 8);
       const aiPrev = aiVolumeRef.current;
       aiVolumeRef.current = aiPrev + (aiTarget - aiPrev) * (aiTarget > aiPrev ? 0.4 : 0.2);
 

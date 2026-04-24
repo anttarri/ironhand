@@ -248,7 +248,6 @@ export function SessionView({ onEnd }: SessionViewProps) {
           state={gemini.state}
           error={gemini.error}
           labelOverride={statusLabelOverride}
-          isAiSpeaking={audio.isAiSpeaking}
         />
       </div>
 

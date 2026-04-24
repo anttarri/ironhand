@@ -11,13 +11,13 @@ const BAR_COUNT = 5;
 const CENTER = (BAR_COUNT - 1) / 2;
 const SHAPE = Array.from({ length: BAR_COUNT }, (_, i) => {
   const dist = Math.abs(i - CENTER) / CENTER;
-  return 1 - dist * 0.45;
+  return 1 - dist * 0.4;
 });
 
-const MIN_H = 2;
-const MAX_RANGE = 14;
-const SMOOTHING_UP = 0.35;
-const SMOOTHING_DOWN = 0.15;
+const MIN_H = 3;
+const MAX_RANGE = 28;
+const SMOOTHING_UP = 0.45;
+const SMOOTHING_DOWN = 0.12;
 
 const IDLE_BARS = Array(BAR_COUNT).fill(MIN_H);
 
@@ -60,7 +60,7 @@ export function VoiceWave({ userVolume, aiVolume, isAiSpeaking, isMuted }: Voice
   const color = isAiSpeaking ? 'bg-electric-blue' : 'bg-amber-500';
 
   return (
-    <div className="flex items-center justify-center gap-[3px] h-5">
+    <div className="flex items-center justify-center gap-[3px] h-8">
       {bars.map((h, i) => (
         <div
           key={i}

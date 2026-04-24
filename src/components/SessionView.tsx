@@ -157,12 +157,12 @@ export function SessionView({ onEnd }: SessionViewProps) {
     }
   }, [isScanning, gemini.messages]);
 
-  // Latch scanning overlay on when user speaks in live mode — stays on for the session
+  // Start scanning overlay when live session becomes active
   useEffect(() => {
-    if (videoMode === 'live' && audio.isUserSpeaking && !isLiveScanning) {
+    if (videoMode === 'live' && gemini.state === 'active') {
       setIsLiveScanning(true);
     }
-  }, [videoMode, audio.isUserSpeaking, isLiveScanning]);
+  }, [videoMode, gemini.state]);
 
   // Haptic + sound on error (ref-guarded to fire once per error)
   useEffect(() => {
@@ -254,7 +254,7 @@ export function SessionView({ onEnd }: SessionViewProps) {
 
       {/* Voice waveform - top right */}
       {gemini.state === 'active' && (
-        <div className="absolute top-4 right-4 safe-top z-10 glass-elevated rounded-full px-3 py-1.5">
+        <div className="absolute top-4 right-4 safe-top z-10">
           <VoiceWave
             userVolume={audio.userVolume}
             aiVolume={audio.aiVolume}

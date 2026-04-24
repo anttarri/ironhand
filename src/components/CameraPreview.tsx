@@ -36,12 +36,6 @@ export function CameraPreview({ videoRef, isActive, videoMode, onFocus }: Camera
         muted
         className={`camera-video ${isActive ? 'opacity-100' : 'opacity-0'}`}
       />
-      {isActive && videoMode === 'live' && (
-        <div className="absolute top-4 right-4 z-10 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm rounded-full px-2.5 py-1">
-          <span className="w-2 h-2 rounded-full bg-danger animate-pulse-dot" />
-          <span className="text-[11px] font-bold text-white tracking-widest uppercase">REC</span>
-        </div>
-      )}
       {isActive && videoMode === 'photo' && (
         <div className="absolute left-1/2 top-[calc(env(safe-area-inset-top,0px)+3.5rem)] z-10 -translate-x-1/2 sm:top-4">
           <div className="bg-amber-500 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-bold text-charcoal uppercase tracking-wider flex items-center gap-2">

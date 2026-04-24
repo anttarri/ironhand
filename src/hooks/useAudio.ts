@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { INPUT_SAMPLE_RATE, OUTPUT_SAMPLE_RATE } from '@/config/constants';
 import { pcmEncode, arrayBufferToBase64, base64ToArrayBuffer } from '@/services/mediaUtils';
 import { haptic } from '@/services/haptics';
@@ -29,6 +29,24 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
   onAudioChunkRef.current = onAudioChunk;
   const wasAiSpeakingRef = useRef(false);
 
+  // Volume refs — written by audio callbacks, read by RAF loop
+  const userVolumeRef = useRef(0);
+  const aiVolumeRef = useRef(0);
+
+  // RAF loop to sync volume refs → state at display rate
+  useEffect(() => {
+    let active = true;
+    let raf = 0;
+    const sync = () => {
+      if (!active) return;
+      setUserVolume(userVolumeRef.current);
+      setAiVolume(aiVolumeRef.current);
+      raf = requestAnimationFrame(sync);
+    };
+    raf = requestAnimationFrame(sync);
+    return () => { active = false; cancelAnimationFrame(raf); };
+  }, []);
+
   const startCapture = useCallback(async () => {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: {
@@ -52,13 +70,12 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
     processor.onaudioprocess = (e: AudioProcessingEvent) => {
       const inputData = e.inputBuffer.getChannelData(0);
 
-      // Compute RMS volume for visualization
       let sum = 0;
       for (let i = 0; i < inputData.length; i++) {
         sum += inputData[i] * inputData[i];
       }
       const rms = Math.sqrt(sum / inputData.length);
-      setUserVolume(isMutedRef.current ? 0 : Math.min(1, rms * 5));
+      userVolumeRef.current = isMutedRef.current ? 0 : Math.min(1, rms * 5);
 
       if (isMutedRef.current) return;
       const pcmBuffer = pcmEncode(inputData);
@@ -82,7 +99,7 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
     streamRef.current = null;
 
     setIsCapturing(false);
-    setUserVolume(0);
+    userVolumeRef.current = 0;
   }, []);
 
   const ensurePlaybackCtx = useCallback(() => {
@@ -113,13 +130,12 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
         float32[i] = int16[i] / 32768;
       }
 
-      // Compute AI volume from this chunk
       let sum = 0;
       for (let i = 0; i < float32.length; i++) {
         sum += float32[i] * float32[i];
       }
       const rms = Math.sqrt(sum / float32.length);
-      setAiVolume(Math.min(1, rms * 4));
+      aiVolumeRef.current = Math.min(1, rms * 4);
 
       const audioBuffer = ctx.createBuffer(1, float32.length, OUTPUT_SAMPLE_RATE);
       audioBuffer.getChannelData(0).set(float32);
@@ -140,7 +156,7 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
       source.onended = () => {
         if (ctx.currentTime >= nextPlayTimeRef.current - 0.1) {
           setIsAiSpeaking(false);
-          setAiVolume(0);
+          aiVolumeRef.current = 0;
           if (wasAiSpeakingRef.current) {
             wasAiSpeakingRef.current = false;
             haptic('ai-ready');
@@ -162,7 +178,7 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
     gainRef.current = null;
     nextPlayTimeRef.current = 0;
     setIsAiSpeaking(false);
-    setAiVolume(0);
+    aiVolumeRef.current = 0;
   }, []);
 
   const toggleMute = useCallback(() => {

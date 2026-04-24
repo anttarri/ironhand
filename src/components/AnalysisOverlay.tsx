@@ -49,14 +49,6 @@ function CornerBrackets({ phase }: { phase: AnalysisPhase }) {
       <svg className="absolute top-5 right-5 animate-scale-in" width="32" height="32" viewBox="0 0 32 32" fill="none">
         <path d="M30 12V4a2 2 0 00-2-2h-8" stroke="rgb(251 191 36)" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round" />
       </svg>
-      {/* Bottom-left */}
-      <svg className="absolute bottom-5 left-5 animate-scale-in" width="32" height="32" viewBox="0 0 32 32" fill="none">
-        <path d="M2 20v8a2 2 0 002 2h8" stroke="rgb(251 191 36)" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round" />
-      </svg>
-      {/* Bottom-right */}
-      <svg className="absolute bottom-5 right-5 animate-scale-in" width="32" height="32" viewBox="0 0 32 32" fill="none">
-        <path d="M30 20v8a2 2 0 01-2 2h-8" stroke="rgb(251 191 36)" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round" />
-      </svg>
     </div>
   );
 }

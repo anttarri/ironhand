@@ -12,6 +12,7 @@ import { ControlBar } from './ControlBar';
 import { StatusIndicator } from './StatusIndicator';
 import { TextComposer } from './TextComposer';
 import { AnalysisOverlay } from './AnalysisOverlay';
+import { VoiceWave } from './VoiceWave';
 
 type VideoMode = 'live' | 'photo';
 
@@ -149,21 +150,19 @@ export function SessionView({ onEnd }: SessionViewProps) {
     prevStateRef.current = gemini.state;
   }, [gemini.state, audio, camera, videoMode]);
 
-  // Dismiss scanning overlay when AI responds
+  // Dismiss scanning overlay when AI responds (photo mode)
   useEffect(() => {
     if (isScanning && gemini.messages.length > messageCountAtScanRef.current) {
       setIsScanning(false);
     }
   }, [isScanning, gemini.messages]);
 
-  // Show scanning overlay while AI speaks in live mode
+  // Latch scanning overlay on when user speaks in live mode — stays on for the session
   useEffect(() => {
-    if (videoMode === 'live' && audio.isAiSpeaking) {
+    if (videoMode === 'live' && audio.isUserSpeaking && !isLiveScanning) {
       setIsLiveScanning(true);
-    } else {
-      setIsLiveScanning(false);
     }
-  }, [videoMode, audio.isAiSpeaking]);
+  }, [videoMode, audio.isUserSpeaking, isLiveScanning]);
 
   // Haptic + sound on error (ref-guarded to fire once per error)
   useEffect(() => {
@@ -183,6 +182,7 @@ export function SessionView({ onEnd }: SessionViewProps) {
     if (nextMode === 'photo') {
       camera.stopStreaming();
       setVideoMode('photo');
+      setIsLiveScanning(false);
     } else {
       camera.startStreaming();
       setVideoMode('live');
@@ -249,13 +249,24 @@ export function SessionView({ onEnd }: SessionViewProps) {
           error={gemini.error}
           labelOverride={statusLabelOverride}
           isAiSpeaking={audio.isAiSpeaking}
-          connectionQuality={gemini.connectionQuality}
         />
       </div>
 
+      {/* Voice waveform - top right */}
+      {gemini.state === 'active' && (
+        <div className="absolute top-4 right-4 safe-top z-10 glass-elevated rounded-full px-3 py-1.5">
+          <VoiceWave
+            userVolume={audio.userVolume}
+            aiVolume={audio.aiVolume}
+            isAiSpeaking={audio.isAiSpeaking}
+            isMuted={audio.isMuted}
+          />
+        </div>
+      )}
+
       {/* Last photo thumbnail - shown in photo mode */}
       {videoMode === 'photo' && lastPhotoThumb && (
-        <div className="absolute top-4 right-4 safe-top z-10">
+        <div className="absolute top-14 right-4 safe-top z-10">
           <div className="w-16 h-16 rounded-lg overflow-hidden border-2 border-white/40 shadow-lg">
             <img
               src={`data:image/jpeg;base64,${lastPhotoThumb}`}

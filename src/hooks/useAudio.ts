@@ -8,10 +8,14 @@ interface UseAudioOptions {
   onAudioChunk: (base64Pcm: string) => void;
 }
 
+const SILENCE_THRESHOLD = 0.015;
+
 export function useAudio({ onAudioChunk }: UseAudioOptions) {
   const [isCapturing, setIsCapturing] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
+  const [userVolume, setUserVolume] = useState(0);
+  const [aiVolume, setAiVolume] = useState(0);
 
   const captureCtxRef = useRef<AudioContext | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -46,8 +50,17 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
     processorRef.current = processor;
 
     processor.onaudioprocess = (e: AudioProcessingEvent) => {
-      if (isMutedRef.current) return;
       const inputData = e.inputBuffer.getChannelData(0);
+
+      // Compute RMS volume for visualization
+      let sum = 0;
+      for (let i = 0; i < inputData.length; i++) {
+        sum += inputData[i] * inputData[i];
+      }
+      const rms = Math.sqrt(sum / inputData.length);
+      setUserVolume(isMutedRef.current ? 0 : Math.min(1, rms * 5));
+
+      if (isMutedRef.current) return;
       const pcmBuffer = pcmEncode(inputData);
       const base64 = arrayBufferToBase64(pcmBuffer);
       onAudioChunkRef.current(base64);
@@ -69,6 +82,7 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
     streamRef.current = null;
 
     setIsCapturing(false);
+    setUserVolume(0);
   }, []);
 
   const ensurePlaybackCtx = useCallback(() => {
@@ -99,6 +113,14 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
         float32[i] = int16[i] / 32768;
       }
 
+      // Compute AI volume from this chunk
+      let sum = 0;
+      for (let i = 0; i < float32.length; i++) {
+        sum += float32[i] * float32[i];
+      }
+      const rms = Math.sqrt(sum / float32.length);
+      setAiVolume(Math.min(1, rms * 4));
+
       const audioBuffer = ctx.createBuffer(1, float32.length, OUTPUT_SAMPLE_RATE);
       audioBuffer.getChannelData(0).set(float32);
 
@@ -118,6 +140,7 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
       source.onended = () => {
         if (ctx.currentTime >= nextPlayTimeRef.current - 0.1) {
           setIsAiSpeaking(false);
+          setAiVolume(0);
           if (wasAiSpeakingRef.current) {
             wasAiSpeakingRef.current = false;
             haptic('ai-ready');
@@ -139,6 +162,7 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
     gainRef.current = null;
     nextPlayTimeRef.current = 0;
     setIsAiSpeaking(false);
+    setAiVolume(0);
   }, []);
 
   const toggleMute = useCallback(() => {
@@ -154,10 +178,15 @@ export function useAudio({ onAudioChunk }: UseAudioOptions) {
     stopPlayback();
   }, [stopCapture, stopPlayback]);
 
+  const isUserSpeaking = userVolume > SILENCE_THRESHOLD;
+
   return {
     isCapturing,
     isMuted,
     isAiSpeaking,
+    isUserSpeaking,
+    userVolume,
+    aiVolume,
     startCapture,
     stopCapture,
     playAudio,

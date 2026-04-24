@@ -102,7 +102,7 @@ export function AnalysisOverlay({ isActive }: AnalysisOverlayProps) {
       <CornerBrackets phase={phase} />
 
       {/* Status text */}
-      <span className="absolute bottom-8 left-0 right-0 text-center text-[11px] font-mono text-amber-400/60">
+      <span className="absolute top-20 left-0 right-0 text-center text-[11px] font-mono text-amber-400/60">
         Analyzing...
       </span>
     </div>

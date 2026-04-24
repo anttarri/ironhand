@@ -5,7 +5,6 @@ interface StatusIndicatorProps {
   error?: string | null;
   labelOverride?: string;
   isAiSpeaking?: boolean;
-  connectionQuality?: 'good' | 'fair' | 'poor' | 'reconnecting';
 }
 
 const stateConfig: Record<SessionState, { color: string; label: string; pulse: boolean }> = {
@@ -30,31 +29,7 @@ function EqBars() {
   );
 }
 
-function SignalBars({ quality }: { quality: 'good' | 'fair' | 'poor' | 'reconnecting' }) {
-  const heights = ['h-1', 'h-1.5', 'h-2'];
-  const getBarColor = (index: number) => {
-    switch (quality) {
-      case 'good':
-        return 'bg-success';
-      case 'fair':
-        return index < 2 ? 'bg-amber-500' : 'bg-white/15';
-      case 'poor':
-        return index === 0 ? 'bg-danger' : 'bg-white/15';
-      case 'reconnecting':
-        return 'bg-amber-500 animate-pulse-dot';
-    }
-  };
-
-  return (
-    <div className="flex items-end gap-[2px] ml-1.5">
-      {heights.map((h, i) => (
-        <span key={i} className={`w-0.5 rounded-full ${h} ${getBarColor(i)}`} />
-      ))}
-    </div>
-  );
-}
-
-export function StatusIndicator({ state, error, labelOverride, isAiSpeaking, connectionQuality }: StatusIndicatorProps) {
+export function StatusIndicator({ state, error, labelOverride, isAiSpeaking }: StatusIndicatorProps) {
   const config = stateConfig[state];
   const label = state === 'error' && error ? error : labelOverride ?? config.label;
   const showEq = state === 'active' && isAiSpeaking;
@@ -73,9 +48,6 @@ export function StatusIndicator({ state, error, labelOverride, isAiSpeaking, con
       <span className="text-[11px] font-mono font-medium text-white/85 uppercase tracking-wider">
         {label}
       </span>
-      {state === 'active' && connectionQuality && (
-        <SignalBars quality={connectionQuality} />
-      )}
     </div>
   );
 }
